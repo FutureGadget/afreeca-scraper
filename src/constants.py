@@ -9,7 +9,12 @@ SHINEE = 'https://bj.afreecatv.com/onlysibar'
 SCRIPT_PATH = Path(__file__).parent
 VIDEO_DIR = (SCRIPT_PATH / '../videos').resolve()
 TOKEN_DIR = (SCRIPT_PATH / '../token').resolve()
+SECRETS_DIR = (SCRIPT_PATH / './secrets').resolve()
+
+EMAIL_RECEPIENTS = ['danwoopark@gmail.com']
+SENDER = 'danwoopark@gmail.com'
 
 if __name__ == '__main__':
     print(VIDEO_DIR)
     print(TOKEN_DIR)
+    print(SECRETS_DIR)
