@@ -11,14 +11,18 @@ from afreeca_utils import get_player_url
 import google_drive_api
 from constants import *
 from fileutils import get_date_time_file_name
+from timer import Timer, TimerError
 
 import time
 import os
 import sys
 
 ### Options
+TARGET_BJ = HORO
+
 HEADLESS = True
-TARGET_BJ = SHINEE
+LIVE_STREAMING_LAG_THRESHOLD_SEC = 10
+RETRY_COUNT_THRESHOLD = 10
 
 def get_headers(cookies):
     return {'Cookie': create_live_cookie_string(cookies), 'Accept': '*/*', 'Accept-Encoding': 'gzip, deflate, br', 'Accept-Language': 'ko-KR,ko;q=0.8,en-US;q=0.5,en;q=0.3', 'Connection': 'keep-alive', 'Host': 'pc-web.stream.afreecatv.com', 'Origin': 'https://play.afreecatv.com', 'Referer': 'https://play.afreecatv.com/onlysibar/235673275','Sec-Fetch-Dest': 'emtpy', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-site', 'TE': 'trailers', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0'}
@@ -92,19 +96,24 @@ def do_scrape(driver, broadcastUrl):
         skip_to_low_quality_video = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="layer_high_quality"]/div/span/a')))
         skip_to_low_quality_video.click()
 
-        isOnAir = True
-        while isOnAir:
+        retrycnt = 0
+        timer = Timer.threshold(LIVE_STREAMING_LAG_THRESHOLD_SEC)
+        timer.start()
+        while retrycnt < RETRY_COUNT_THRESHOLD:
             try:
-                isOnAir = download(driver, filename, cookies)
+                download(driver, filename, cookies, timer)
                 click_play_btn(driver)
                 click_play_btn(driver)
                 # retry
                 print('Retrying...')
             except KeyboardInterrupt as e:
                 print('Aborting by user request..')
-                return True
+                break
             except Exception as e:
                 print(e)
+            finally:
+                timer.increase_threshold_and_reset()
+                retrycnt += 1
 
 
 
@@ -116,23 +125,23 @@ def click_play_btn(driver):
     action.click()
     action.perform()
 
-def download(driver, filename, cookies):
+
+def download(driver, filename, cookies, timer):
      # Keep downloading HLS streaming segments.
-    streamingStarted = False
-    threshold = 150
-    failCount = 0
     while True:
         browser_log = driver.get_log('performance')
         events = [process_browser_log_entry(entry) for entry in browser_log]
 
         requests = [event for event in events if 'Network.request' in event['method']]
         # response = [event for event in events if 'Network.response' in event['method']]
+
+        if len(requests) == 0 and timer.is_over_due():
+            return
+
         for e in requests:
             tsReq = find_ts_request(e)
             if tsReq:
-                failCount = 0 # re-initialize fail count
-                streamingStarted = True
-
+                timer.reset()
                 url = tsReq['request']['url']
                 r1 = rq.get(url, stream=True, headers=get_headers(cookies), timeout=2)
                 if r1.status_code == 200:
@@ -142,13 +151,7 @@ def download(driver, filename, cookies):
                             f.write(chunk)
                 else:
                     print(f"Received unexpected status code {r1.status_code, r1.json}")
-            else:
-                failCount+=1
-                print(f'failCount: {failCount}')
-                if streamingStarted and failCount > threshold:
-                    return streamingStarted
-                elif not streamingStarted and failCount > 20*threshold:
-                    return streamingStarted
+
 
 def find_ts_request(e):
     if 'request' in e['params'].keys():
