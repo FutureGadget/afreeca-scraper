@@ -22,7 +22,7 @@ TARGET_BJ = HORO
 
 HEADLESS = True
 LIVE_STREAMING_LAG_THRESHOLD_SEC = 10
-RETRY_COUNT_THRESHOLD = 10
+RETRY_COUNT_THRESHOLD = 5
 
 def get_headers(cookies):
     return {'Cookie': create_live_cookie_string(cookies), 'Accept': '*/*', 'Accept-Encoding': 'gzip, deflate, br', 'Accept-Language': 'ko-KR,ko;q=0.8,en-US;q=0.5,en;q=0.3', 'Connection': 'keep-alive', 'Host': 'pc-web.stream.afreecatv.com', 'Origin': 'https://play.afreecatv.com', 'Referer': 'https://play.afreecatv.com/onlysibar/235673275','Sec-Fetch-Dest': 'emtpy', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-site', 'TE': 'trailers', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0'}
@@ -40,17 +40,20 @@ def main():
             do_scrape(driver, TARGET_BJ)
         except KeyboardInterrupt as e:
             print("Shutdown requested...existing.")
-            break
         except Exception as e:
+            print('Exception while scraping...')
             print(e)
         finally:
-            newDownloads = get_new_videos(existingVideos)
-            if len(newDownloads) > 0:
-                save_all(newDownloads)
-            print('녹화를 종료.')
+            stop_recording(existingVideos)
             driver.quit()
         time.sleep(60)
     sys.exit(0)
+
+def stop_recording(existingVideos):
+    print('녹화를 종료.')
+    newDownloads = get_new_videos(existingVideos)
+    if len(newDownloads) > 0:
+        save_all(newDownloads)
 
 def save_all(filenames):
     for filename in filenames:
@@ -110,6 +113,7 @@ def do_scrape(driver, broadcastUrl):
                 print('Aborting by user request..')
                 raise e
             except Exception as e:
+                print('Exception while downloading...')
                 print(e)
             finally:
                 timer.increase_threshold_and_reset()

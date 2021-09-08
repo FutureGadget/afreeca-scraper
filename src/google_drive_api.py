@@ -32,7 +32,7 @@ def insert_file(service, title, parent_id, mime_type, filename):
         while response is None:
             status, response = request.next_chunk()
             if status:
-                print(f"Uploaded int({status.progress() * 100})")
+                print(f"Uploaded {int(status.progress() * 100)})")
         
         # Uncomment the following line to print the File ID
         print(f"File ID: {response.get('id')}")
