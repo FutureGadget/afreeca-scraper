@@ -33,28 +33,28 @@ def create_live_cookie_string(cookie):
 def main():
     existingVideos = [f for f in os.listdir(VIDEO_DIR) if os.path.isfile(os.path.join(VIDEO_DIR, f))]
     print(f"Existing videos: {','.join(existingVideos)}")
-    try:
-        while True:
-            driver = get_driver()
-            try:
-                print('방송이 시작되면 녹화.')
-                do_scrape(driver, TARGET_BJ)
-            except Exception as e:
-                print(e)
-            finally:
-                newDownloads = get_new_videos(existingVideos)
-                if len(newDownloads) > 0:
-                    save_all(newDownloads)
-                print('녹화를 종료.')
-                driver.quit()
-            time.sleep(60)
-    except KeyboardInterrupt:
-        print("Shutdown requested...existing.")
+    while True:
+        driver = get_driver()
+        try:
+            print('방송이 시작되면 녹화.')
+            do_scrape(driver, TARGET_BJ)
+        except KeyboardInterrupt as e:
+            print("Shutdown requested...existing.")
+            break
+        except Exception as e:
+            print(e)
+        finally:
+            newDownloads = get_new_videos(existingVideos)
+            if len(newDownloads) > 0:
+                save_all(newDownloads)
+            print('녹화를 종료.')
+            driver.quit()
+        time.sleep(60)
     sys.exit(0)
 
 def save_all(filenames):
     for filename in filenames:
-        google_drive_api.save(get_date_time_file_name(), f'{VIDEO_DIR}/{filename}')
+        google_drive_api.savdAndBroadcastEmail(get_date_time_file_name(), f'{VIDEO_DIR}/{filename}')
 
 def get_new_videos(existingVideos):
     newVideos = [ f for f in os.listdir(VIDEO_DIR) if os.path.isfile(os.path.join(VIDEO_DIR, f)) and f not in existingVideos ]
@@ -108,7 +108,7 @@ def do_scrape(driver, broadcastUrl):
                 print('Retrying...')
             except KeyboardInterrupt as e:
                 print('Aborting by user request..')
-                break
+                raise e
             except Exception as e:
                 print(e)
             finally:
