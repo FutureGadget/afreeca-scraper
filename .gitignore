@@ -1,0 +1,8 @@
+videos/
+token/
+src/secrets/
+chromedriver
+chromedriver.exe
+Dockerfile
+src/__pycache__
+__pycache__

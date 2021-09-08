@@ -1,0 +1,15 @@
+import os
+from pathlib import Path
+
+PLAYER_ROOT_URL = 'https://play.afreecatv.com/'
+
+HORO = 'https://bj.afreecatv.com/scv6256'
+SHINEE = 'https://bj.afreecatv.com/onlysibar'
+
+SCRIPT_PATH = Path(__file__).parent
+VIDEO_DIR = (SCRIPT_PATH / '../videos').resolve()
+TOKEN_DIR = (SCRIPT_PATH / '../token').resolve()
+
+if __name__ == '__main__':
+    print(VIDEO_DIR)
+    print(TOKEN_DIR)
