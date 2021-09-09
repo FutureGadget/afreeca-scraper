@@ -1,9 +1,11 @@
 from selenium import webdriver
+from selenium.webdriver.common import desired_capabilities
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver import ActionChains
+from selenium.webdriver.remote.webdriver import WebDriver
 import json
 import requests as rq
 
@@ -18,7 +20,7 @@ import os
 import sys
 
 ### Options
-TARGET_BJ = HORO
+TARGET_BJ = SHINEE
 
 HEADLESS = True
 LIVE_STREAMING_LAG_THRESHOLD_SEC = 10
@@ -31,9 +33,10 @@ def create_live_cookie_string(cookie):
     return '; '.join(list(map(lambda c: str(c['name']) + '=' + str(c['value']), cookie)))
 
 def main():
-    existingVideos = [f for f in os.listdir(VIDEO_DIR) if os.path.isfile(os.path.join(VIDEO_DIR, f))]
-    print(f"Existing videos: {','.join(existingVideos)}")
     while True:
+        existingVideos = [f for f in os.listdir(VIDEO_DIR) if os.path.isfile(os.path.join(VIDEO_DIR, f))]
+        print(f"Existing videos: {','.join(existingVideos)}")
+        
         driver = get_driver()
         try:
             print('방송이 시작되면 녹화.')
@@ -65,6 +68,7 @@ def get_new_videos(existingVideos):
     return newVideos
 
 def get_driver():
+    
     caps = DesiredCapabilities.CHROME
     caps['goog:loggingPrefs'] = {'performance': 'ALL'}
 
@@ -74,6 +78,7 @@ def get_driver():
         options.add_argument("disable-gpu")
     options.add_argument('--window-size=1920,1080')
     
+    #return WebDriver(command_executor='http://localhost:4444', desired_capabilities=caps, options=options)
     return webdriver.Chrome(desired_capabilities=caps, options=options)
 
 def do_scrape(driver, broadcastUrl):
