@@ -8,7 +8,7 @@ from constants import SENDER
 
 import base64
 
-def create_message(sender, to, subject, message_text):
+def create_message(to, subject, message_text):
   """Create a message for an email.
 
   Args:
@@ -22,7 +22,6 @@ def create_message(sender, to, subject, message_text):
   """
   message = MIMEText(message_text)
   message['to'] = to
-  message['from'] = sender
   message['subject'] = subject
   return {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')}
 
@@ -53,4 +52,4 @@ def broadcast_to_enrolled_users(subject, message_text):
 
 if __name__ == '__main__':
   # broadcast_to_enrolled_users(subject='샤강도착', message_text="테스트")
-  print(sendEmailTo(create_message(sender="danwoopark@gmail.com",to="mojo1821@naver.com",subject="샤이니 강의 도착!!",message_text="링크:https://drive.google.com/file/d/1WghtnOxzMNneukwwiWVJAARQI3ycTcE4/view?usp=sharing")))
+  print(sendEmailTo(create_message(to="danwoopark@gmail.com",subject="샤이니 강의 도착!!",message_text="링크:https://drive.google.com/file/d/1WghtnOxzMNneukwwiWVJAARQI3ycTcE4/view?usp=sharing")))
