@@ -13,14 +13,11 @@ from afreeca_utils import get_player_url
 import google_drive_api
 from constants import *
 from fileutils import get_date_time_file_name
-from timer import Timer, TimerError
+from timer import Timer
 
 import time
 import os
 import sys
-
-### Options
-TARGET_BJ = SHINEE
 
 HEADLESS = True
 LIVE_STREAMING_LAG_THRESHOLD_SEC = 10
@@ -32,31 +29,34 @@ def get_headers(cookies):
 def create_live_cookie_string(cookie):
     return '; '.join(list(map(lambda c: str(c['name']) + '=' + str(c['value']), cookie)))
 
-def main():
+def scrape(TARGET_BJ, save_google_drive=False):
     while True:
         existingVideos = [f for f in os.listdir(VIDEO_DIR) if os.path.isfile(os.path.join(VIDEO_DIR, f))]
         print(f"Existing videos: {','.join(existingVideos)}")
         
         driver = get_driver()
         try:
-            print('방송이 시작되면 녹화.')
+            print('Start recording when the broadcasting is onair.')
             do_scrape(driver, TARGET_BJ)
         except KeyboardInterrupt as e:
             print("Shutdown requested...existing.")
+            break
         except Exception as e:
             print('Exception while scraping...')
             print(e)
         finally:
-            stop_recording(existingVideos)
+            stop_recording(existingVideos, save_google_drive)
             driver.quit()
         time.sleep(60)
     sys.exit(0)
 
-def stop_recording(existingVideos):
+def stop_recording(existingVideos, save_google_drive):
     print('녹화를 종료.')
     newDownloads = get_new_videos(existingVideos)
-    if len(newDownloads) > 0:
+    if len(newDownloads) > 0 and save_google_drive:
         save_all(newDownloads)
+    elif not save_google_drive:
+        print(f'New downloads: {len(newDownloads)} without uploading.')
 
 def save_all(filenames):
     for filename in filenames:
@@ -171,5 +171,3 @@ def process_browser_log_entry(entry):
     response = json.loads(entry['message'])['message']
     return response
 
-if __name__ == '__main__':
-    main()

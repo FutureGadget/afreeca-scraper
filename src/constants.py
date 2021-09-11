@@ -5,6 +5,7 @@ PLAYER_ROOT_URL = 'https://play.afreecatv.com/'
 
 HORO = 'https://bj.afreecatv.com/scv6256'
 SHINEE = 'https://bj.afreecatv.com/onlysibar'
+JIHO = 'https://bj.afreecatv.com/jou1025'
 
 SCRIPT_PATH = Path(__file__).parent
 VIDEO_DIR = (SCRIPT_PATH / '../videos').resolve()
