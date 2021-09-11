@@ -9,7 +9,7 @@ from selenium.webdriver.remote.webdriver import WebDriver
 import json
 import requests as rq
 
-from afreeca_utils import get_player_url
+from afreeca_utils import get_player
 import google_drive_api
 from constants import *
 from fileutils import get_date_time_file_name
@@ -18,6 +18,7 @@ from timer import Timer
 import time
 import os
 import sys
+import traceback
 
 HEADLESS = True
 LIVE_STREAMING_LAG_THRESHOLD_SEC = 10
@@ -43,6 +44,7 @@ def scrape(TARGET_BJ, save_google_drive=False):
             break
         except Exception as e:
             print('Exception while scraping...')
+            print(traceback.format_exc())
             print(e)
         finally:
             stop_recording(existingVideos, save_google_drive)
@@ -68,7 +70,6 @@ def get_new_videos(existingVideos):
     return newVideos
 
 def get_driver():
-    
     caps = DesiredCapabilities.CHROME
     caps['goog:loggingPrefs'] = {'performance': 'ALL'}
 
@@ -82,48 +83,38 @@ def get_driver():
     return webdriver.Chrome(desired_capabilities=caps, options=options)
 
 def do_scrape(driver, broadcastUrl):
-    driver.get(broadcastUrl)
+    driver = get_player(driver, broadcastUrl)
+    cookies = driver.get_cookies()
+    print(cookies)
 
-    webPlayerUrl = get_player_url(driver, broadcastUrl)
+    filename = f"{VIDEO_DIR}/{str(int(time.time()))}.mpeg"
+    # Must click play button to start streaming.
+    play = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="stop_screen"]/dl/dd[2]/a')))
+    play.click()
 
-    if not webPlayerUrl:
-        print('현재 방송중이 아님')
-    else:
-        driver.get(webPlayerUrl)
-        WebDriverWait(driver, 10).until(EC.new_window_is_opened)
-        cookies = driver.get_cookies()
-        print(cookies)
+    # Close the program install recommendation window.
+    skip_to_low_quality_video = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="layer_high_quality"]/div/span/a')))
+    skip_to_low_quality_video.click()
 
-        filename = f"{VIDEO_DIR}/{str(int(time.time()))}.mpeg"
-        # Must click play button to start streaming.
-        play = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="stop_screen"]/dl/dd[2]/a')))
-        play.click()
-
-        # Close the program install recommendation window.
-        # if not HEADLESS:
-        skip_to_low_quality_video = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="layer_high_quality"]/div/span/a')))
-        skip_to_low_quality_video.click()
-
-        retrycnt = 0
-        timer = Timer.threshold(LIVE_STREAMING_LAG_THRESHOLD_SEC)
-        timer.start()
-        while retrycnt < RETRY_COUNT_THRESHOLD:
-            try:
-                download(driver, filename, cookies, timer)
-                click_play_btn(driver)
-                click_play_btn(driver)
-                # retry
-                print('Retrying...')
-            except KeyboardInterrupt as e:
-                print('Aborting by user request..')
-                raise e
-            except Exception as e:
-                print('Exception while downloading...')
-                print(e)
-            finally:
-                timer.increase_threshold_and_reset()
-                retrycnt += 1
-
+    retrycnt = 0
+    timer = Timer.threshold(LIVE_STREAMING_LAG_THRESHOLD_SEC)
+    timer.start()
+    while retrycnt < RETRY_COUNT_THRESHOLD:
+        try:
+            download(driver, filename, cookies, timer)
+            click_play_btn(driver)
+            click_play_btn(driver)
+            # retry
+            print('Retrying...')
+        except KeyboardInterrupt as e:
+            print('Aborting by user request..')
+            raise e
+        except Exception as e:
+            print('Exception while downloading...')
+            print(e)
+        finally:
+            timer.increase_threshold_and_reset()
+            retrycnt += 1
 
 
 def click_play_btn(driver):
