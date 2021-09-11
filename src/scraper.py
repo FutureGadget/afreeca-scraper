@@ -1,11 +1,9 @@
 from selenium import webdriver
-from selenium.webdriver.common import desired_capabilities
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver import ActionChains
-from selenium.webdriver.remote.webdriver import WebDriver
 import json
 import requests as rq
 
@@ -19,6 +17,15 @@ import time
 import os
 import sys
 import traceback
+
+import m3u8
+from urllib.parse import urlsplit
+from urllib.parse import urljoin
+from urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
+from threading import Thread
+
+from errors import NotOnAirException
 
 HEADLESS = True
 LIVE_STREAMING_LAG_THRESHOLD_SEC = 10
@@ -39,6 +46,8 @@ def scrape(TARGET_BJ, save_google_drive=False):
         try:
             print('Start recording when the broadcasting is onair.')
             do_scrape(driver, TARGET_BJ)
+        except NotOnAirException as e:
+            print("Start from the first since the broadcasting does not seem to be on air.")
         except KeyboardInterrupt as e:
             print("Shutdown requested...existing.")
             break
@@ -95,30 +104,114 @@ def do_scrape(driver, broadcastUrl):
     # Close the program install recommendation window.
     skip_to_low_quality_video = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="layer_high_quality"]/div/span/a')))
     skip_to_low_quality_video.click()
+    scrape_with_retry(driver, filename, cookies)
 
+
+def scrape_with_retry(driver, filename, cookies):
     retrycnt = 0
     timer = Timer.threshold(LIVE_STREAMING_LAG_THRESHOLD_SEC)
     timer.start()
     while retrycnt < RETRY_COUNT_THRESHOLD:
         try:
-            download(driver, filename, cookies, timer)
-            click_play_btn(driver)
-            click_play_btn(driver)
+            #download(driver, filename, cookies, timer)
+            download_by_m3u8(driver, filename, cookies, timer)
             # retry
             print('Retrying...')
+        except NotOnAirException as e:
+            raise e
         except KeyboardInterrupt as e:
             print('Aborting by user request..')
             raise e
         except Exception as e:
             print('Exception while downloading...')
-            print(e)
+            print(traceback.format_exc())
         finally:
             timer.increase_threshold_and_reset()
             retrycnt += 1
 
+def close_driver(driver):
+    driver.close()
 
-def click_play_btn(driver):
-    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'play')))
+def download_by_m3u8(driver, filename, cookies, timer):
+    finished = False
+    m3u8Url = None
+    stop_streaming_thread = Thread(target=close_driver, args = (driver,)) # click to stop streaming.
+    try:
+        while not finished:
+            browser_log = driver.get_log('performance')
+            events = [process_browser_log_entry(entry) for entry in browser_log]
+
+            requests = [event for event in events if 'Network.request' in event['method']]
+
+            if (len(requests)) == 0 and timer.is_over_due():
+                return
+            
+            for e in requests:
+                m3u8Req = find_m3u8_request(e)
+                if m3u8Req:
+                    timer.reset()
+                    m3u8Url = m3u8Req['request']['url']
+                    finished = True
+                    break
+        
+        stop_streaming_thread.start()
+
+        if m3u8Url:
+            print(f'Request m3u8 url detected: {m3u8Url}')
+            do_download(m3u8Url, filename, cookies)
+            
+    except Exception as e:
+        print('ERROR: Download by m3u8 exception: ')
+        print(traceback.format_exc())
+
+
+def do_download(m3u8_url, filename, cookies):
+    s = rq.Session()
+    retries = Retry(total = 5,
+                    backoff_factor=0.1,
+                    status_forcelist=[ 500, 502, 503, 504 ])
+    s.mount('https://', HTTPAdapter(max_retries=retries))
+    with open (filename, 'ab') as f:
+        while True:
+            r1 = s.get(m3u8_url, headers = get_headers(cookies), timeout = 2)
+            if r1.status_code == 200:
+                playlist = m3u8.loads(r1.text)
+                root_uri = get_m3u8_root_uri(m3u8_url)
+                download_segments(playlist, root_uri, f, s, cookies)
+
+
+def download_segments(playlist, root_uri, file, _rq, cookies):
+    try:
+        for s in playlist.segments:
+            url = urljoin(root_uri, s.uri)
+            r1 = _rq.get(url, headers = get_headers(cookies), timeout = 2)
+            if r1.status_code == 200:
+                print(f'{url} => OK')
+                for chunk in r1.iter_content(chunk_size=1024):
+                    file.write(chunk)
+            else:
+                print(f"Received unexpected status code {r1.status_code, r1.json}")
+                raise NotOnAirException()
+            time.sleep(s.duration)
+    except Exception as e:
+        print('ERROR: Downloading segments from m3u8 playlist')
+        print(traceback.format_exc())
+        raise e
+
+
+def get_m3u8_root_uri(m3u8_url):
+    (scheme, netloc, path, _, _) = urlsplit(m3u8_url)
+    return f'{scheme}://{netloc}/{path.split("/")[1]}/' # must be trailing slash to be used in urljoin
+
+
+def find_m3u8_request(e):
+    if 'request' in e['params'].keys():
+        if 'auth_playlist.m3u8' in e['params']['request']['url']:
+            return e['params']
+
+
+def click_play_btn(driver, wait_sec):
+    WebDriverWait(driver, wait_sec).until(EC.element_to_be_clickable((By.ID, 'play')))
     playBtn = driver.find_element_by_id('play')
     action = ActionChains(driver)
     action.move_to_element_with_offset(playBtn, 2, 2)
@@ -136,6 +229,8 @@ def download(driver, filename, cookies, timer):
         # response = [event for event in events if 'Network.response' in event['method']]
 
         if len(requests) == 0 and timer.is_over_due():
+            click_play_btn(driver, 10)
+            click_play_btn(driver, 10)
             return
 
         for e in requests:
