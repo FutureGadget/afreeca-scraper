@@ -15,7 +15,6 @@ TOKEN_DIR = (SCRIPT_PATH / '../token').resolve()
 SECRETS_DIR = (SCRIPT_PATH / './secrets').resolve()
 
 EMAIL_RECEPIENTS = ['danwoopark@gmail.com', 'whrwkd7@gmail.com']
-SENDER = 'danwoopark@gmail.com'
 
 if __name__ == '__main__':
     print(VIDEO_DIR)
