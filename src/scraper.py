@@ -44,17 +44,24 @@ def scrape(TARGET_BJ, save_google_drive=False):
         
         driver = get_driver()
         try:
+            print('RRRRRRRRRRRRRRRRRRRRRRRRRRR')
             print('Start recording when the broadcasting is onair.')
+            print('RRRRRRRRRRRRRRRRRRRRRRRRRRR')
             do_scrape(driver, TARGET_BJ)
         except NotOnAirException as e:
+            print('!------------NOT ON AIR-----------!')
             print("Start from the first since the broadcasting does not seem to be on air.")
+            print('!------------NOT ON AIR-----------!')
         except KeyboardInterrupt as e:
+            print('QQQQQQQQQQQQQQQQQQQQQQQQQQQ')
             print("Shutdown requested...existing.")
+            print('QQQQQQQQQQQQQQQQQQQQQQQQQQQ')
             break
         except Exception as e:
+            print('EEEEEEEEEEEEEEEEEEEEEEEEEEE')
             print('Exception while scraping...')
             print(traceback.format_exc())
-            print(e)
+            print('EEEEEEEEEEEEEEEEEEEEEEEEEEE')
         finally:
             stop_recording(existingVideos, save_google_drive)
             driver.quit()
@@ -62,12 +69,16 @@ def scrape(TARGET_BJ, save_google_drive=False):
     sys.exit(0)
 
 def stop_recording(existingVideos, save_google_drive):
-    print('녹화를 종료.')
+    print('===========================')
+    print('======STOP RECORDING=======')
+    print('===========================')
     newDownloads = get_new_videos(existingVideos)
     if len(newDownloads) > 0 and save_google_drive:
         save_all(newDownloads)
     elif not save_google_drive:
+        print('===========================')
         print(f'New downloads: {len(newDownloads)} without uploading.')
+        print('===========================')
 
 def save_all(filenames):
     for filename in filenames:
@@ -75,7 +86,13 @@ def save_all(filenames):
 
 def get_new_videos(existingVideos):
     newVideos = [ f for f in os.listdir(VIDEO_DIR) if os.path.isfile(os.path.join(VIDEO_DIR, f)) and f not in existingVideos ]
-    print(f"New vidoes: {','.join(newVideos)}")
+    if len(newVideos) > 0:
+        print('===========================')
+        print('=========NEW VIDEOS========')
+        print(','.join(newVideos))
+        print('===========================')
+    else:
+        print('-------NO NEW VIDEOS-------')
     return newVideos
 
 def get_driver():
@@ -94,7 +111,9 @@ def get_driver():
 def do_scrape(driver, broadcastUrl):
     driver = get_player(driver, broadcastUrl)
     cookies = driver.get_cookies()
+    print("*******COOKIES*******")
     print(cookies)
+    print("*********************")
 
     filename = f"{VIDEO_DIR}/{str(int(time.time()))}.mpeg"
     # Must click play button to start streaming.

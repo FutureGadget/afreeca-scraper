@@ -4,7 +4,7 @@ Download afreeca live stream and upload it to Google drive, then send you an ema
 
 ## Prerequisites
 1. [chromedriver](https://chromedriver.chromium.org/) executable must be in PATH.
-2. `src/secrets` must contain the google client secret file.
+2. `secrets` must contain the google client secret file.
     > https://developers.google.com/adwords/api/docs/guides/authentication#installed
 3. `token` directory must contain a valid google oauth token file. `token.json`
     - This will be created once the OAuth2 flow has been completed.
