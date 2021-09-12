@@ -2,6 +2,10 @@
 ## Summary
 Download afreeca live stream and upload it to Google drive, then send you an email so that you can watch it later.
 
-## TODOs
-### Reliability
-1. dockerize 해서 aws 배포하여 항상 실행되게 하기.
+## Prerequisites
+1. [chromedriver](https://chromedriver.chromium.org/) executable must be in PATH.
+2. `src/secrets` must contain the google client secret file.
+    > https://developers.google.com/adwords/api/docs/guides/authentication#installed
+3. `token` directory must contain a valid google oauth token file. `token.json`
+    - This will be created once the OAuth2 flow has been completed.
+4. `videos` directory must exist to save video streaming.
