@@ -1,6 +1,6 @@
 videos/
 token/
-secrects/
+secrets/
 chromedriver
 chromedriver.exe
 Dockerfile
