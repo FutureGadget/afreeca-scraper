@@ -27,6 +27,8 @@ from threading import Thread
 
 from errors import NotOnAirException
 
+from logger_config import *
+
 HEADLESS = True
 LIVE_STREAMING_LAG_THRESHOLD_SEC = 10
 RETRY_COUNT_THRESHOLD = 5
@@ -154,7 +156,7 @@ def close_driver(driver):
 def download_by_m3u8(driver, filename, cookies, timer):
     finished = False
     m3u8Url = None
-    stop_streaming_thread = Thread(target=close_driver, args = (driver,)) # click to stop streaming.
+    stop_streaming_thread = Thread(target=close_driver, args = (driver,), daemon=True) # click to stop streaming.
     try:
         while not finished:
             browser_log = driver.get_log('performance')
@@ -183,6 +185,40 @@ def download_by_m3u8(driver, filename, cookies, timer):
         print('ERROR: Download by m3u8 exception: ')
         print(traceback.format_exc())
 
+import queue
+
+def enqueue_ts_urls(m3u8_url, cookies, _rq, q):
+    unq = set()
+    entries = queue.SimpleQueue()
+    while True:
+        sleep_time = 0
+        try:
+            res = _rq.get(m3u8_url, headers = get_headers(cookies), timeout = 2)
+            if res.status_code == 200:
+                playlist = m3u8.loads(res.text)
+                root_uri = get_m3u8_root_uri(m3u8_url)
+                for s in playlist.segments:
+                    if s.uri in unq:
+                        print(f'Duplicate URI: {s.uri}')
+                    else:
+                        if len(unq) > 10:
+                            old_uri = entries.get()
+                            unq.remove(old_uri)
+                        unq.add(s.uri)
+                        entries.put(s.uri)
+                        url = urljoin(root_uri, s.uri)
+                        q.put((url, s.duration))
+                        print(f'Put segment: url-{url}, duration-{s.duration} => OK')
+                    sleep_time = sleep_time + s.duration
+                print(f"m3u8 worker: Sleep {sleep_time - 0.5} seconds. (original: {sleep_time})")
+                time.sleep(sleep_time - 0.5)
+            else:
+                logger.error(f"Received unexpected status code when requesting m3u8: {res.status_code, res.json}")
+                raise NotOnAirException()
+        except Exception as e:
+            print('Error: Failed to get m3u8.')
+            print(traceback.format_exc())
+            break
 
 def do_download(m3u8_url, filename, cookies):
     s = rq.Session()
@@ -190,34 +226,42 @@ def do_download(m3u8_url, filename, cookies):
                     backoff_factor=0.1,
                     status_forcelist=[ 500, 502, 503, 504 ])
     s.mount('https://', HTTPAdapter(max_retries=retries))
-    with open (filename, 'ab') as f:
-        while True:
-            r1 = s.get(m3u8_url, headers = get_headers(cookies), timeout = 2)
-            if r1.status_code == 200:
-                playlist = m3u8.loads(r1.text)
-                root_uri = get_m3u8_root_uri(m3u8_url)
-                download_segments(playlist, root_uri, f, s, cookies)
+    q = queue.Queue()
+
+    #Thread(target=enqueue_ts_urls, args=(m3u8_url, cookies, s, q), daemon=True).start()
+    Thread(target=download_segments, args=(filename, q, s, cookies), daemon=True).start()
+    enqueue_ts_urls(m3u8_url, cookies, s, q)
 
 
-def download_segments(playlist, root_uri, file, _rq, cookies):
-    try:
-        for s in playlist.segments:
-            url = urljoin(root_uri, s.uri)
-            r1 = _rq.get(url, headers = get_headers(cookies), timeout = 2)
-            if r1.status_code == 200:
-                print(f'{url} => OK')
-                for chunk in r1.iter_content(chunk_size=1024):
-                    file.write(chunk)
-            else:
-                print(f"Received unexpected status code {r1.status_code, r1.json}")
-                raise NotOnAirException()
-            time.sleep(s.duration)
-    except Exception as e:
-        print('ERROR: Downloading segments from m3u8 playlist')
-        print(traceback.format_exc())
-        raise e
+def download_segments(filename, q, _rq, cookies):
+    dtimer = Timer.threshold(5)
+    dtimer.start()
+    with open (filename, 'ab') as file:
+        while True and not dtimer.is_over_due():
+            try:
+                (url, duration) = q.get()
+                r1 = _rq.get(url, stream=True, headers = get_headers(cookies), timeout = 2)
+                if r1.status_code == 200:
+                    stream_logger.info(f'{url} => OK')
+                    for chunk in r1.iter_content(chunk_size=1024):
+                        file.write(chunk)
+                    print(f'DOWNLOAD: {url} => OK')
+                    dtimer.reset()
+                else:
+                    logger.warn(f"Received unexpected status code {r1.status_code, r1.json}")
+                    raise NotOnAirException()
+                time.sleep(duration)
+            except Exception as e:
+                logger.error('ERROR: Downloading segments from m3u8 playlist')
+                logger.error(traceback.format_exc())
+                raise e
+            finally:
+                print(f'Download timer elapsed: {dtimer.elapsed()}')
+                q.task_done()
 
+import functools
 
+@functools.lru_cache(maxsize=5)
 def get_m3u8_root_uri(m3u8_url):
     (scheme, netloc, path, _, _) = urlsplit(m3u8_url)
     return f'{scheme}://{netloc}/{path.split("/")[1]}/' # must be trailing slash to be used in urljoin
@@ -275,4 +319,3 @@ def find_ts_request(e):
 def process_browser_log_entry(entry):
     response = json.loads(entry['message'])['message']
     return response
-
