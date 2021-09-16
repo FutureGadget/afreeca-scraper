@@ -60,10 +60,10 @@ def scrape(TARGET_BJ, save_google_drive=False):
             print('QQQQQQQQQQQQQQQQQQQQQQQQQQQ')
             break
         except Exception as e:
-            print('EEEEEEEEEEEEEEEEEEEEEEEEEEE')
-            print('Exception while scraping...')
-            print(traceback.format_exc())
-            print('EEEEEEEEEEEEEEEEEEEEEEEEEEE')
+            logger('EEEEEEEEEEEEEEEEEEEEEEEEEEE')
+            logger('Exception while scraping...')
+            logger.error(traceback.format_exc())
+            logger('EEEEEEEEEEEEEEEEEEEEEEEEEEE')
         finally:
             stop_recording(existingVideos, save_google_drive)
             driver.quit()
@@ -182,8 +182,8 @@ def download_by_m3u8(driver, filename, cookies, timer):
             do_download(m3u8Url, filename, cookies)
             
     except Exception as e:
-        print('ERROR: Download by m3u8 exception: ')
-        print(traceback.format_exc())
+        logger.error('ERROR: Download by m3u8 exception: ')
+        logger.error(traceback.format_exc())
 
 import queue
 
@@ -231,6 +231,7 @@ def do_download(m3u8_url, filename, cookies):
     #Thread(target=enqueue_ts_urls, args=(m3u8_url, cookies, s, q), daemon=True).start()
     Thread(target=download_segments, args=(filename, q, s, cookies), daemon=True).start()
     enqueue_ts_urls(m3u8_url, cookies, s, q)
+    q.join()
 
 
 def download_segments(filename, q, _rq, cookies):
@@ -248,8 +249,7 @@ def download_segments(filename, q, _rq, cookies):
                     print(f'DOWNLOAD: {url} => OK')
                     dtimer.reset()
                 else:
-                    logger.warn(f"Received unexpected status code {r1.status_code, r1.json}")
-                    raise NotOnAirException()
+                    logger.error(f"Received unexpected status code {r1.status_code, r1.json}")
                 time.sleep(duration)
             except Exception as e:
                 logger.error('ERROR: Downloading segments from m3u8 playlist')
