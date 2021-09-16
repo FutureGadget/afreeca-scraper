@@ -1,4 +1,5 @@
 from selenium import webdriver
+from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -23,15 +24,19 @@ from urllib.parse import urlsplit
 from urllib.parse import urljoin
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
-from threading import Thread
 
 from errors import NotOnAirException
 
 from logger_config import *
 
+import queue
+import concurrent.futures as cf
+
 HEADLESS = True
 LIVE_STREAMING_LAG_THRESHOLD_SEC = 10
 RETRY_COUNT_THRESHOLD = 5
+# Should sleep with buffer to keep pace with streaming server (where network request latencey exists)
+SEGMENT_DURATION_BUFFER = 0.1
 
 def get_headers(cookies):
     return {'Cookie': create_live_cookie_string(cookies), 'Accept': '*/*', 'Accept-Encoding': 'gzip, deflate, br', 'Accept-Language': 'ko-KR,ko;q=0.8,en-US;q=0.5,en;q=0.3', 'Connection': 'keep-alive', 'Host': 'pc-web.stream.afreecatv.com', 'Origin': 'https://play.afreecatv.com', 'Referer': 'https://play.afreecatv.com/onlysibar/235673275','Sec-Fetch-Dest': 'emtpy', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-site', 'TE': 'trailers', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0'}
@@ -97,7 +102,7 @@ def get_new_videos(existingVideos):
         print('-------NO NEW VIDEOS-------')
     return newVideos
 
-def get_driver():
+def get_driver() -> WebDriver:
     caps = DesiredCapabilities.CHROME
     caps['goog:loggingPrefs'] = {'performance': 'ALL'}
 
@@ -110,7 +115,7 @@ def get_driver():
     #return WebDriver(command_executor='http://localhost:4444', desired_capabilities=caps, options=options)
     return webdriver.Chrome(desired_capabilities=caps, options=options)
 
-def do_scrape(driver, broadcastUrl):
+def do_scrape(driver: WebDriver, broadcastUrl: str):
     driver = get_player(driver, broadcastUrl)
     cookies = driver.get_cookies()
     print("*******COOKIES*******")
@@ -128,7 +133,7 @@ def do_scrape(driver, broadcastUrl):
     scrape_with_retry(driver, filename, cookies)
 
 
-def scrape_with_retry(driver, filename, cookies):
+def scrape_with_retry(driver: WebDriver, filename: str, cookies: dict):
     retrycnt = 0
     timer = Timer.threshold(LIVE_STREAMING_LAG_THRESHOLD_SEC)
     timer.start()
@@ -153,39 +158,37 @@ def scrape_with_retry(driver, filename, cookies):
 def close_driver(driver):
     driver.close()
 
-def download_by_m3u8(driver, filename, cookies, timer):
-    finished = False
-    m3u8Url = None
-    stop_streaming_thread = Thread(target=close_driver, args = (driver,), daemon=True) # click to stop streaming.
-    try:
-        while not finished:
-            browser_log = driver.get_log('performance')
-            events = [process_browser_log_entry(entry) for entry in browser_log]
+def download_by_m3u8(driver: WebDriver, filename: str, cookies: dict, timer: Timer):
+    with cf.ThreadPoolExecutor(max_workers=5) as executor:
+        finished = False
+        m3u8Url = None
+        try:
+            while not finished:
+                browser_log = driver.get_log('performance')
+                events = [process_browser_log_entry(entry) for entry in browser_log]
 
-            requests = [event for event in events if 'Network.request' in event['method']]
+                requests = [event for event in events if 'Network.request' in event['method']]
 
-            if (len(requests)) == 0 and timer.is_over_due():
-                return
+                if (len(requests)) == 0 and timer.is_over_due():
+                    return
+                
+                for e in requests:
+                    m3u8Req = find_m3u8_request(e)
+                    if m3u8Req:
+                        timer.reset()
+                        m3u8Url = m3u8Req['request']['url']
+                        finished = True
+                        break
             
-            for e in requests:
-                m3u8Req = find_m3u8_request(e)
-                if m3u8Req:
-                    timer.reset()
-                    m3u8Url = m3u8Req['request']['url']
-                    finished = True
-                    break
-        
-        stop_streaming_thread.start()
+            executor.submit(close_driver, driver)
 
-        if m3u8Url:
-            print(f'Request m3u8 url detected: {m3u8Url}')
-            do_download(m3u8Url, filename, cookies)
-            
-    except Exception as e:
-        logger.error('ERROR: Download by m3u8 exception: ')
-        logger.error(traceback.format_exc())
-
-import queue
+            if m3u8Url:
+                print(f'Request m3u8 url detected: {m3u8Url}')
+                do_download(m3u8Url, filename, cookies, executor)
+                
+        except Exception as e:
+            logger.error('ERROR: Download by m3u8 exception: ')
+            logger.error(traceback.format_exc())
 
 def enqueue_ts_urls(m3u8_url, cookies, _rq, q):
     unq = set()
@@ -209,9 +212,9 @@ def enqueue_ts_urls(m3u8_url, cookies, _rq, q):
                         url = urljoin(root_uri, s.uri)
                         q.put((url, s.duration))
                         print(f'Put segment: url-{url}, duration-{s.duration} => OK')
-                    sleep_time = sleep_time + s.duration
-                print(f"m3u8 worker: Sleep {sleep_time - 0.5} seconds. (original: {sleep_time})")
-                time.sleep(sleep_time - 0.5)
+                    sleep_time = sleep_time + s.duration - SEGMENT_DURATION_BUFFER
+                print(f"m3u8 worker: Sleep {sleep_time} seconds. (original: {sleep_time})")
+                time.sleep(sleep_time)
             else:
                 logger.error(f"Received unexpected status code when requesting m3u8: {res.status_code, res.json}")
                 raise NotOnAirException()
@@ -220,7 +223,8 @@ def enqueue_ts_urls(m3u8_url, cookies, _rq, q):
             print(traceback.format_exc())
             break
 
-def do_download(m3u8_url, filename, cookies):
+
+def do_download(m3u8_url: str, filename: str, cookies, executor: cf.ThreadPoolExecutor):
     s = rq.Session()
     retries = Retry(total = 5,
                     backoff_factor=0.1,
@@ -229,16 +233,18 @@ def do_download(m3u8_url, filename, cookies):
     q = queue.Queue()
 
     #Thread(target=enqueue_ts_urls, args=(m3u8_url, cookies, s, q), daemon=True).start()
-    Thread(target=download_segments, args=(filename, q, s, cookies), daemon=True).start()
-    enqueue_ts_urls(m3u8_url, cookies, s, q)
-    q.join()
+    futures = []
+    futures.append(executor.submit(enqueue_ts_urls, m3u8_url, cookies, s, q))
+    futures.append(executor.submit(download_segments, filename, q, s, cookies))
+    for future in cf.as_completed(futures):
+        e = future.exception()
+        if e:
+            logger.error(repr(e))
 
 
 def download_segments(filename, q, _rq, cookies):
-    dtimer = Timer.threshold(5)
-    dtimer.start()
     with open (filename, 'ab') as file:
-        while True and not dtimer.is_over_due():
+        while True:
             try:
                 (url, duration) = q.get()
                 r1 = _rq.get(url, stream=True, headers = get_headers(cookies), timeout = 2)
@@ -247,21 +253,17 @@ def download_segments(filename, q, _rq, cookies):
                     for chunk in r1.iter_content(chunk_size=1024):
                         file.write(chunk)
                     print(f'DOWNLOAD: {url} => OK')
-                    dtimer.reset()
                 else:
-                    logger.error(f"Received unexpected status code {r1.status_code, r1.json}")
-                time.sleep(duration)
+                    logger.error(f"Received unexpected status code: {r1.status_code, r1.json} for segment: {url}")
+                time.sleep(duration-SEGMENT_DURATION_BUFFER)
             except Exception as e:
                 logger.error('ERROR: Downloading segments from m3u8 playlist')
                 logger.error(traceback.format_exc())
                 raise e
             finally:
-                print(f'Download timer elapsed: {dtimer.elapsed()}')
                 q.task_done()
 
-import functools
 
-@functools.lru_cache(maxsize=5)
 def get_m3u8_root_uri(m3u8_url):
     (scheme, netloc, path, _, _) = urlsplit(m3u8_url)
     return f'{scheme}://{netloc}/{path.split("/")[1]}/' # must be trailing slash to be used in urljoin
