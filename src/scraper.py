@@ -216,7 +216,7 @@ def enqueue_ts_urls(m3u8_url, cookies, _rq, q):
                         q.put((url, s.duration))
                         print(f'Put segment: url-{url}, duration-{s.duration} => OK')
                     sleep_time = sleep_time + s.duration - SEGMENT_DURATION_BUFFER
-                print(f"m3u8 worker: Sleep {sleep_time} seconds. (original: {sleep_time})")
+                print(f"m3u8 worker: Sleep {sleep_time} seconds.")
                 time.sleep(sleep_time)
             else:
                 logger.error(f"Received unexpected status code when requesting m3u8: {res.status_code, res.json}")
@@ -264,7 +264,7 @@ def download_segments(filename, q, _rq, cookies):
                 (url, duration) = q.get()
                 r1 = _rq.get(url, stream=True, headers = get_headers(cookies), timeout = 2)
                 if r1.status_code == 200:
-                    stream_logger.info(f'{url} => OK')
+                    stream_logger.debug(f'{url} => OK')
                     for chunk in r1.iter_content(chunk_size=1024):
                         file.write(chunk)
                     print(f'DOWNLOAD: {url} => OK')
