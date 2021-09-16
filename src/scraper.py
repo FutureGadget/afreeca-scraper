@@ -38,6 +38,9 @@ RETRY_COUNT_THRESHOLD = 5
 # Should sleep with buffer to keep pace with streaming server (where network request latencey exists)
 SEGMENT_DURATION_BUFFER = 0.1
 
+global g_quit
+g_quit = False
+
 def get_headers(cookies):
     return {'Cookie': create_live_cookie_string(cookies), 'Accept': '*/*', 'Accept-Encoding': 'gzip, deflate, br', 'Accept-Language': 'ko-KR,ko;q=0.8,en-US;q=0.5,en;q=0.3', 'Connection': 'keep-alive', 'Host': 'pc-web.stream.afreecatv.com', 'Origin': 'https://play.afreecatv.com', 'Referer': 'https://play.afreecatv.com/onlysibar/235673275','Sec-Fetch-Dest': 'emtpy', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-site', 'TE': 'trailers', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0'}
 
@@ -193,7 +196,7 @@ def download_by_m3u8(driver: WebDriver, filename: str, cookies: dict, timer: Tim
 def enqueue_ts_urls(m3u8_url, cookies, _rq, q):
     unq = set()
     entries = queue.SimpleQueue()
-    while True:
+    while not g_quit:
         sleep_time = 0
         try:
             res = _rq.get(m3u8_url, headers = get_headers(cookies), timeout = 2)
@@ -236,6 +239,18 @@ def do_download(m3u8_url: str, filename: str, cookies, executor: cf.ThreadPoolEx
     futures = []
     futures.append(executor.submit(enqueue_ts_urls, m3u8_url, cookies, s, q))
     futures.append(executor.submit(download_segments, filename, q, s, cookies))
+
+    # Keep looping to handle KeyboardInterrupt signal (SIGINT)
+    # http://www.luke.maurits.id.au/blog/post/threads-and-signals-in-python.html
+    # https://stackoverflow.com/questions/29177490/how-do-you-kill-futures-once-they-have-started
+    try:
+        while not all([future.done() for future in futures]):
+            time.sleep(1)
+    except KeyboardInterrupt as e:
+        global g_quit
+        g_quit = True
+        raise e
+
     for future in cf.as_completed(futures):
         e = future.exception()
         if e:
@@ -244,7 +259,7 @@ def do_download(m3u8_url: str, filename: str, cookies, executor: cf.ThreadPoolEx
 
 def download_segments(filename, q, _rq, cookies):
     with open (filename, 'ab') as file:
-        while True:
+        while not g_quit:
             try:
                 (url, duration) = q.get()
                 r1 = _rq.get(url, stream=True, headers = get_headers(cookies), timeout = 2)
