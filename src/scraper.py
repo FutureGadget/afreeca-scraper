@@ -220,11 +220,10 @@ def enqueue_ts_urls(m3u8_url, cookies, _rq, q):
                 time.sleep(sleep_time)
             else:
                 logger.error(f"Received unexpected status code when requesting m3u8: {res.status_code, res.json}")
-                raise NotOnAirException()
         except Exception as e:
             print('Error: Failed to get m3u8.')
             print(traceback.format_exc())
-            break
+            raise NotOnAirException()
 
 
 def do_download(m3u8_url: str, filename: str, cookies, executor: cf.ThreadPoolExecutor):
@@ -255,13 +254,14 @@ def do_download(m3u8_url: str, filename: str, cookies, executor: cf.ThreadPoolEx
         e = future.exception()
         if e:
             logger.error(repr(e))
+            raise e
 
 
-def download_segments(filename, q, _rq, cookies):
+def download_segments(filename: str, q: queue.Queue, _rq, cookies):
     with open (filename, 'ab') as file:
         while not g_quit:
             try:
-                (url, duration) = q.get()
+                (url, duration) = q.get(timeout=30)
                 r1 = _rq.get(url, stream=True, headers = get_headers(cookies), timeout = 2)
                 if r1.status_code == 200:
                     stream_logger.debug(f'{url} => OK')
@@ -274,7 +274,8 @@ def download_segments(filename, q, _rq, cookies):
             except Exception as e:
                 logger.error('ERROR: Downloading segments from m3u8 playlist')
                 logger.error(traceback.format_exc())
-                raise e
+                q.all_tasks_done()
+                raise NotOnAirException()
             finally:
                 q.task_done()
 

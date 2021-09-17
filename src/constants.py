@@ -10,6 +10,7 @@ PAGO = 'https://bj.afreecatv.com/rlatjdgus228'
 DOJAE = 'https://bj.afreecatv.com/wodnrdldia'
 HONG9 = 'https://bj.afreecatv.com/dpfgc3'
 JUM = 'https://bj.afreecatv.com/jk890202'
+JJUK = 'https://bj.afreecatv.com/tmsh401'
 
 SCRIPT_PATH = Path(__file__).parent
 VIDEO_DIR = (SCRIPT_PATH / '../videos').resolve()
