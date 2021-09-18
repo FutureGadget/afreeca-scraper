@@ -32,6 +32,10 @@ from logger_config import *
 import queue
 import concurrent.futures as cf
 
+import bj_tracker
+
+shinee_tracker = bj_tracker.ShineeTracker(start_tomorrow=True)
+
 HEADLESS = True
 LIVE_STREAMING_LAG_THRESHOLD_SEC = 10
 RETRY_COUNT_THRESHOLD = 5
@@ -74,6 +78,7 @@ def scrape(TARGET_BJ, save_google_drive=False):
             logger('EEEEEEEEEEEEEEEEEEEEEEEEEEE')
         finally:
             stop_recording(existingVideos, save_google_drive)
+            shinee_tracker.send_email_if_had_no_live_today()
             driver.quit()
         time.sleep(60)
     sys.exit(0)
@@ -187,6 +192,7 @@ def download_by_m3u8(driver: WebDriver, filename: str, cookies: dict, timer: Tim
 
             if m3u8Url:
                 print(f'Request m3u8 url detected: {m3u8Url}')
+                shinee_tracker.broadcast_started()
                 do_download(m3u8Url, filename, cookies, executor)
                 
         except Exception as e:
