@@ -3,6 +3,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 # Logger Configs
+# TODO: import only once
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(thread)d %(levelname)s %(name)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', handlers=[logging.StreamHandler()])
 logger = logging.getLogger("scraper")
 logger.addHandler(RotatingFileHandler(f'{LOG_DIR}/error.log', mode='a', maxBytes=1024*1024*100, backupCount=50)) # log file total size: 500 megabytes
