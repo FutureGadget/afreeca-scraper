@@ -58,24 +58,24 @@ def scrape(TARGET_BJ, save_google_drive=False):
         
         driver = get_driver()
         try:
-            print('RRRRRRRRRRRRRRRRRRRRRRRRRRR')
+            print('=====================START====================')
             print('Start recording when the broadcasting is onair.')
-            print('RRRRRRRRRRRRRRRRRRRRRRRRRRR')
+            print('===============================================')
             do_scrape(driver, TARGET_BJ)
         except NotOnAirException as e:
-            print('!------------NOT ON AIR-----------!')
-            print("Start from the first since the broadcasting does not seem to be on air.")
-            print('!------------NOT ON AIR-----------!')
+            print('!-------------------------------NOT ON AIR------------------------------!')
+            print(" Start from the first since the broadcasting does not seem to be on air.")
+            print('!-----------------------------------------------------------------------!')
         except KeyboardInterrupt as e:
-            print('QQQQQQQQQQQQQQQQQQQQQQQQQQQ')
+            print('=======SHUTDOWN REQUESTED======')
             print("Shutdown requested...existing.")
-            print('QQQQQQQQQQQQQQQQQQQQQQQQQQQ')
+            print('===============================')
             break
         except Exception as e:
-            logger('EEEEEEEEEEEEEEEEEEEEEEEEEEE')
+            logger('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
             logger('Exception while scraping...')
             logger.error(traceback.format_exc())
-            logger('EEEEEEEEEEEEEEEEEEEEEEEEEEE')
+            logger('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         finally:
             stop_recording(existingVideos, save_google_drive)
             shinee_tracker.send_email_if_had_no_live_today()
@@ -84,16 +84,16 @@ def scrape(TARGET_BJ, save_google_drive=False):
     sys.exit(0)
 
 def stop_recording(existingVideos, save_google_drive):
-    print('===========================')
-    print('======STOP RECORDING=======')
-    print('===========================')
+    print('================================')
+    print('=========STOP RECORDING=========')
+    print('================================')
     newDownloads = get_new_videos(existingVideos)
     if len(newDownloads) > 0 and save_google_drive:
         save_all(newDownloads)
     elif not save_google_drive:
-        print('===========================')
+        print('==============SKIP SAVING GOOGLE DRIVE================')
         print(f'New downloads: {len(newDownloads)} without uploading.')
-        print('===========================')
+        print('======================================================')
 
 def save_all(filenames):
     for filename in filenames:
