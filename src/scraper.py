@@ -27,7 +27,7 @@ from requests.adapters import HTTPAdapter
 
 from errors import NotOnAirException
 
-from logger_config import *
+import logger_config
 
 import queue
 import concurrent.futures as cf
@@ -72,10 +72,10 @@ def scrape(bj_home_uri, save_google_drive=False):
             print('===============================')
             break
         except Exception as e:
-            logger('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            logger('Exception while scraping...')
-            logger.error(traceback.format_exc())
-            logger('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            logger_config.logger('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            logger_config.logger('Exception while scraping...')
+            logger_config.logger.error(traceback.format_exc())
+            logger_config.logger('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         finally:
             stop_recording(existingVideos, save_google_drive)
             shinee_tracker.send_email_if_had_no_live_today()
@@ -116,9 +116,11 @@ def get_driver() -> WebDriver:
 
     options = webdriver.ChromeOptions()
     if HEADLESS:
-        options.add_argument('headless')
-        options.add_argument("disable-gpu")
-    options.add_argument('--window-size=1920,1080')
+        options.add_argument('--headless')
+        options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox") # https://stackoverflow.com/questions/53902507/unknown-error-session-deleted-because-of-page-crash-from-unknown-error-cannot
+    options.add_argument("--disable-dev-shm-usage") # https://stackoverflow.com/questions/53902507/unknown-error-session-deleted-because-of-page-crash-from-unknown-error-cannot
+    options.add_argument("--window-size=1920,1080")
     
     return webdriver.Remote(command_executor='http://chrome:4444/wd/hub', desired_capabilities=caps, options=options) # connect remote webdriver to docker standalone chrome
     # return webdriver.Chrome(desired_capabilities=caps, options=options)
@@ -196,8 +198,8 @@ def download_by_m3u8(driver: WebDriver, filename: str, cookies: dict, timer: Tim
                 do_download(m3u8Url, filename, cookies, executor)
                 
         except Exception as e:
-            logger.error('ERROR: Download by m3u8 exception: ')
-            logger.error(traceback.format_exc())
+            logger_config.logger.error('ERROR: Download by m3u8 exception: ')
+            logger_config.logger.error(traceback.format_exc())
 
 def enqueue_ts_urls(m3u8_url, cookies, _rq, q):
     unq = set()
@@ -225,7 +227,7 @@ def enqueue_ts_urls(m3u8_url, cookies, _rq, q):
                 print(f"m3u8 worker: Sleep {sleep_time} seconds.")
                 time.sleep(sleep_time)
             else:
-                logger.error(f"Received unexpected status code when requesting m3u8: {res.status_code, res.json}")
+                logger_config.logger.error(f"Received unexpected status code when requesting m3u8: {res.status_code, res.json}")
         except Exception as e:
             print('Error: Failed to get m3u8.')
             print(traceback.format_exc())
@@ -259,7 +261,7 @@ def do_download(m3u8_url: str, filename: str, cookies, executor: cf.ThreadPoolEx
     for future in cf.as_completed(futures):
         e = future.exception()
         if e:
-            logger.error(repr(e))
+            logger_config.logger.error(repr(e))
             raise e
 
 
@@ -270,16 +272,16 @@ def download_segments(filename: str, q: queue.Queue, _rq, cookies):
                 (url, duration) = q.get(timeout=30)
                 r1 = _rq.get(url, stream=True, headers = get_headers(cookies), timeout = 2)
                 if r1.status_code == 200:
-                    stream_logger.debug(f'{url} => OK')
+                    logger_config.stream_logger.debug(f'{url} => OK')
                     for chunk in r1.iter_content(chunk_size=1024):
                         file.write(chunk)
                     print(f'DOWNLOAD: {url} => OK')
                 else:
-                    logger.error(f"Received unexpected status code: {r1.status_code, r1.json} for segment: {url}")
+                    logger_config.logger.error(f"Received unexpected status code: {r1.status_code, r1.json} for segment: {url}")
                 time.sleep(duration-SEGMENT_DURATION_BUFFER)
             except Exception as e:
-                logger.error('ERROR: Downloading segments from m3u8 playlist')
-                logger.error(traceback.format_exc())
+                logger_config.logger.error('ERROR: Downloading segments from m3u8 playlist')
+                logger_config.logger.error(traceback.format_exc())
                 q.all_tasks_done()
                 raise NotOnAirException()
             finally:

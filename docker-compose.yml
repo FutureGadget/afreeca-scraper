@@ -8,6 +8,7 @@ services:
       - "./secrets:/afreeca-scraper/secrets"
       - "./videos:/afreeca-scraper/videos"
       - "./logs:/afreeca-scraper/logs"
+      - "./app_config.ini:/afreeca-scraper/app_config.ini"
     shm_size: '2gb'
     depends_on:
       - "chrome"

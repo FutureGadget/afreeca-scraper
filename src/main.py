@@ -14,4 +14,4 @@ if __name__ == '__main__':
     # os.path.exists(VIDEO_DIR) or os.mkdir(VIDEO_DIR, mode)
     # os.path.exists(LOG_DIR) or os.mkdir(LOG_DIR, mode)
 
-    scrape(TARGET_BJ)
+    scrape(TARGET_BJ, SAVE_ON_DRIVE_AND_NOTIFY)

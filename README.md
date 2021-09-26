@@ -13,6 +13,6 @@ Download afreeca live stream and upload it to Google drive, then send you an ema
 ## Now, this app is dockerized🎉
 1. Forget the prerequisites above.
 2. To execute,
-    > docker compose run -d
+    > docker compose up -d
 3. To send SIGINT (stop program and send the recording to recipients)
     > docker kill --signal=SIGINT {container id}
