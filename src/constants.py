@@ -1,26 +1,26 @@
 from pathlib import Path
+import configparser
 
+# Constants
 PLAYER_ROOT_URL = 'https://play.afreecatv.com/'
 
-HORO = 'https://bj.afreecatv.com/scv6256'
-SHINEE = 'https://bj.afreecatv.com/onlysibar'
-JIHO = 'https://bj.afreecatv.com/jou1025'
-PAGO = 'https://bj.afreecatv.com/rlatjdgus228'
-DOJAE = 'https://bj.afreecatv.com/wodnrdldia'
-HONG9 = 'https://bj.afreecatv.com/dpfgc3'
-JUM = 'https://bj.afreecatv.com/jk890202'
-JJUK = 'https://bj.afreecatv.com/tmsh401'
-
+# Paths
 SCRIPT_PATH = Path(__file__).parent
 VIDEO_DIR = (SCRIPT_PATH / '../videos').resolve()
 TOKEN_DIR = (SCRIPT_PATH / '../token').resolve()
 SECRETS_DIR = (SCRIPT_PATH / '../secrets').resolve()
 LOG_DIR = (SCRIPT_PATH / '../logs').resolve()
+CONFIG_FILE_PATH = (SCRIPT_PATH / '../app_config.ini').resolve()
 
-#EMAIL_RECEPIENTS = ['danwoopark@gmail.com', 'whrwkd7@gmail.com']
-EMAIL_RECEPIENTS = ['danwoopark@gmail.com']
+# Read from config
+config = configparser.ConfigParser()
+config.read(CONFIG_FILE_PATH)
+
+TARGET_BJ = config['Recording']['target_bj_home_uri']
+EMAIL_RECEPIENTS = config['Notification']['recipients'].split(',')
 
 if __name__ == '__main__':
     print(VIDEO_DIR)
     print(TOKEN_DIR)
     print(SECRETS_DIR)
+    print(CONFIG_FILE_PATH)

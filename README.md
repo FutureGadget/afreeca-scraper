@@ -9,3 +9,10 @@ Download afreeca live stream and upload it to Google drive, then send you an ema
 3. `token` directory must contain a valid google oauth token file. `token.json`
     - This will be created once the OAuth2 flow has been completed.
 4. `videos` directory must exist to save video streaming.
+
+## Now, this app is dockerized🎉
+1. Forget the prerequisites above.
+2. To execute,
+    > docker compose run -d
+3. To send SIGINT (stop program and send the recording to recipients)
+    > docker kill --signal=SIGINT {container id}

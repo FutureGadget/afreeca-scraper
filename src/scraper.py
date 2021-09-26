@@ -51,7 +51,7 @@ def get_headers(cookies):
 def create_live_cookie_string(cookie):
     return '; '.join(list(map(lambda c: str(c['name']) + '=' + str(c['value']), cookie)))
 
-def scrape(TARGET_BJ, save_google_drive=False):
+def scrape(bj_home_uri, save_google_drive=False):
     while True:
         existingVideos = [f for f in os.listdir(VIDEO_DIR) if os.path.isfile(os.path.join(VIDEO_DIR, f))]
         print(f"Existing videos: {','.join(existingVideos)}")
@@ -61,7 +61,7 @@ def scrape(TARGET_BJ, save_google_drive=False):
             print('=====================START====================')
             print('Start recording when the broadcasting is onair.')
             print('===============================================')
-            do_scrape(driver, TARGET_BJ)
+            do_scrape(driver, bj_home_uri)
         except NotOnAirException as e:
             print('!-------------------------------NOT ON AIR------------------------------!')
             print(" Start from the first since the broadcasting does not seem to be on air.")
@@ -120,11 +120,11 @@ def get_driver() -> WebDriver:
         options.add_argument("disable-gpu")
     options.add_argument('--window-size=1920,1080')
     
-    #return WebDriver(command_executor='http://localhost:4444', desired_capabilities=caps, options=options)
-    return webdriver.Chrome(desired_capabilities=caps, options=options)
+    return webdriver.Remote(command_executor='http://chrome:4444/wd/hub', desired_capabilities=caps, options=options) # connect remote webdriver to docker standalone chrome
+    # return webdriver.Chrome(desired_capabilities=caps, options=options)
 
-def do_scrape(driver: WebDriver, broadcastUrl: str):
-    driver = get_player(driver, broadcastUrl)
+def do_scrape(driver: WebDriver, bj_home_uri: str):
+    driver = get_player(driver, bj_home_uri)
     cookies = driver.get_cookies()
     print("*******COOKIES*******")
     print(cookies)
