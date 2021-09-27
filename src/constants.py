@@ -37,3 +37,4 @@ if __name__ == '__main__':
     print(CONFIG_FILE_PATH)
     print(EMAIL_RECEPIENTS)
     print(SAVE_ON_DRIVE_AND_NOTIFY)
+    print(config_file)
