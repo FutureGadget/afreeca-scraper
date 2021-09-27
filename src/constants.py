@@ -12,6 +12,7 @@ TOKEN_DIR = (SCRIPT_PATH / '../token').resolve()
 SECRETS_DIR = (SCRIPT_PATH / '../secrets').resolve()
 LOG_DIR = (SCRIPT_PATH / '../logs').resolve()
 CONFIG_FILE_PATH = (SCRIPT_PATH / '../configs').resolve()
+BANNER_FILE = (SCRIPT_PATH / '../banner.txt').resolve()
 
 # Environment Postfixes
 DEVELOP = 'dev'
