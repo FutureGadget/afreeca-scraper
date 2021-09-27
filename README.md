@@ -16,3 +16,8 @@ Download afreeca live stream and upload it to Google drive, then send you an ema
     > docker compose up -d
 3. To send SIGINT (stop program and send the recording to recipients)
     > docker kill --signal=SIGINT {container id}
+
+## TODOs
+1. manage replica set to enhance availablity
+2. enhance observability (monitoring)
+3. clean up `videos/` dir periodically.

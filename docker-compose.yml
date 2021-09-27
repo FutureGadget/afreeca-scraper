@@ -11,7 +11,8 @@ services:
       - "./app_config.ini:/afreeca-scraper/app_config.ini"
     shm_size: '2gb'
     depends_on:
-      - "chrome"
+      - chrome
+    restart: on-failure
     environment:
       - PYTHONUNBUFFERED=1 # print stdout logs immediately when `docker logs -f {containerId}`
   
@@ -19,3 +20,4 @@ services:
     image: selenium/standalone-chrome:latest
     ports:
       - "4444:4444"
+    restart: always
