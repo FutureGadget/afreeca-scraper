@@ -3,7 +3,6 @@ token/
 secrets/
 chromedriver
 chromedriver.exe
-Dockerfile
 src/__pycache__
 __pycache__
 logs/
