@@ -1,15 +1,25 @@
-# Afreeca Live Stream Downloader
+```
+   _____ _     _                  _____                                
+  / ____| |   (_)                / ____|                               
+ | (___ | |__  _ _ __   ___  ___| (___   ___ _ __ __ _ _ __   ___ _ __ 
+  \___ \| '_ \| | '_ \ / _ \/ _ \\___ \ / __| '__/ _` | '_ \ / _ \ '__|
+  ____) | | | | | | | |  __/  __/____) | (__| | | (_| | |_) |  __/ |   
+ |_____/|_| |_|_|_| |_|\___|\___|_____/ \___|_|  \__,_| .__/ \___|_|   
+                                                      | |              
+                                                      |_|              v1.0 by Danwoo Park
+```
+
 ## Summary
-Download afreeca live stream and upload it to Google drive, then send you an email so that you can watch it later.
+ShineeScraper is an Afreeca TV live stream downloader.
+Download afreeca live stream and upload it to Google drive, then send you an email so that you can watch it later anytime you want.
 
 ## Now, this app is dockerized🎉
-1. Forget the prerequisites above.
-2. To execute,
+1. To execute,
     > docker compose up -d
-3. To send SIGINT (stop program and send the recording to recipients)
+2. To send SIGINT (stop program and send the recording to recipients)
     > docker kill --signal=SIGINT {container id}
 
 ## TODOs
+0. Save video file name following the original live stream name which the BJ set.
 1. manage replica set to enhance availablity
 2. enhance observability (monitoring)
-3. clean up `videos/` dir periodically.

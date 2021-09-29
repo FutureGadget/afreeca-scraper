@@ -9,14 +9,11 @@ import json
 import requests as rq
 
 from afreeca_utils import get_player
-import google_drive_api
 from constants import *
-from fileutils import get_date_time_file_name
+
 from timer import Timer
 
 import time
-import os
-import sys
 import traceback
 
 import m3u8
@@ -31,10 +28,7 @@ import logger_config
 
 import queue
 import concurrent.futures as cf
-
-import bj_tracker
-
-shinee_tracker = bj_tracker.ShineeTracker(start_tomorrow=True)
+from bj_tracker import ShineeTracker
 
 HEADLESS = True
 LIVE_STREAMING_LAG_THRESHOLD_SEC = 10
@@ -51,64 +45,25 @@ def get_headers(cookies):
 def create_live_cookie_string(cookie):
     return '; '.join(list(map(lambda c: str(c['name']) + '=' + str(c['value']), cookie)))
 
-def scrape(bj_home_uri, save_google_drive=False):
-    while True:
-        existingVideos = [f for f in os.listdir(VIDEO_DIR) if os.path.isfile(os.path.join(VIDEO_DIR, f))]
-        print(f"Existing videos: {','.join(existingVideos)}")
-        
-        driver = get_driver()
-        try:
-            print('=====================START====================')
-            print('Start recording when the broadcasting is onair.')
-            print('===============================================')
-            do_scrape(driver, bj_home_uri)
-        except NotOnAirException as e:
-            print('!-------------------------------NOT ON AIR------------------------------!')
-            print(" Start from the first since the broadcasting does not seem to be on air.")
-            print('!-----------------------------------------------------------------------!')
-        except KeyboardInterrupt as e:
-            print('=======SHUTDOWN REQUESTED======')
-            print("Shutdown requested...existing.")
-            print('===============================')
-            break
-        except Exception as e:
-            logger_config.logger('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            logger_config.logger('Exception while scraping...')
-            logger_config.logger.error(traceback.format_exc())
-            logger_config.logger('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        finally:
-            stop_recording(existingVideos, save_google_drive)
-            shinee_tracker.send_email_if_had_no_live_today()
-            driver.quit()
-        time.sleep(60)
-    sys.exit(0)
-
-def stop_recording(existingVideos, save_google_drive):
-    print('================================')
-    print('=========STOP RECORDING=========')
-    print('================================')
-    newDownloads = get_new_videos(existingVideos)
-    if len(newDownloads) > 0 and save_google_drive:
-        save_all(newDownloads)
-    elif not save_google_drive:
-        print('==============SKIP SAVING GOOGLE DRIVE================')
-        print(f'New downloads: {len(newDownloads)} without uploading.')
-        print('======================================================')
-
-def save_all(filenames):
-    for filename in filenames:
-        google_drive_api.savdAndBroadcastEmail(get_date_time_file_name(), f'{VIDEO_DIR}/{filename}')
-
-def get_new_videos(existingVideos):
-    newVideos = [ f for f in os.listdir(VIDEO_DIR) if os.path.isfile(os.path.join(VIDEO_DIR, f)) and f not in existingVideos ]
-    if len(newVideos) > 0:
-        print('===========================')
-        print('=========NEW VIDEOS========')
-        print(','.join(newVideos))
-        print('===========================')
-    else:
-        print('-------NO NEW VIDEOS-------')
-    return newVideos
+def scrape(bj_home_uri):
+    driver = get_driver()
+    try:
+        print('=====================START====================')
+        print('Start recording when the broadcasting is onair.')
+        print('===============================================')
+        do_scrape(driver, bj_home_uri)
+    except NotOnAirException as e:
+        print('!-------------------------------NOT ON AIR------------------------------!')
+        print(" Start from the first since the broadcasting does not seem to be on air.")
+        print('!-----------------------------------------------------------------------!')
+    except Exception as e:
+        logger_config.logger('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        logger_config.logger('Exception while scraping...')
+        logger_config.logger.error(traceback.format_exc())
+        logger_config.logger('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        raise e
+    finally:
+        driver.quit()
 
 def get_driver() -> WebDriver:
     caps = DesiredCapabilities.CHROME
@@ -194,7 +149,7 @@ def download_by_m3u8(driver: WebDriver, filename: str, cookies: dict, timer: Tim
 
             if m3u8Url:
                 print(f'Request m3u8 url detected: {m3u8Url}')
-                shinee_tracker.broadcast_started()
+                ShineeTracker.broadcast_started()
                 do_download(m3u8Url, filename, cookies, executor)
                 
         except Exception as e:

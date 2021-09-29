@@ -19,21 +19,23 @@ def is_same_date_in_kst(dt: datetime):
             now.day == dt.day
 
 class ShineeTracker:
+    last_live_date = None
     def __init__(self, start_tomorrow = True):
         if start_tomorrow:
-            self.last_live_date = datetime.now(timezone.utc)
+            ShineeTracker.last_live_date = datetime.now(timezone.utc)
         else:
-            self.last_live_date = None
+            ShineeTracker.last_live_date = None
         self.last_email_sent = None
         self.shinee_usual_broadcast_finish_hour_with_buffer_in_kst = 16
     
     def today_live_datetime_in_kst(self):
-        if self.last_live_date:
-            return self.last_live_date.astimezone(tz = KST)
+        if ShineeTracker.last_live_date:
+            return ShineeTracker.last_live_date.astimezone(tz = KST)
         return None
 
-    def broadcast_started(self):
-        self.last_live_date = datetime.now(timezone.utc)
+    @staticmethod
+    def broadcast_started():
+        ShineeTracker.last_live_date = datetime.now(timezone.utc)
     
     def had_live_today(self):
         now = get_now_as_kst()
