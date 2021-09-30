@@ -13,7 +13,9 @@ tokenFile = f'{TOKEN_DIR}/token.json'
 
 client_secrets_file = f'{SECRETS_DIR}/{CREDENTIAL_FILE}'
 
-SCOPES = ['https://mail.google.com/', 'https://www.googleapis.com/auth/drive']
+SCOPES = ['https://mail.google.com/', 'https://www.googleapis.com/auth/drive',
+          'https://www.googleapis.com/auth/youtube']
+
 
 def get_cred():
     creds = None

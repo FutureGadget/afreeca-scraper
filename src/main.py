@@ -17,9 +17,9 @@ if __name__ == '__main__':
 
     shinee_tracker = ShineeTracker(start_tomorrow=True)
     uploader = get_video_file_uploader(VideoUploaderType.GOOGLE_DRIVE)
-    
+
     while True:
-        video_file_cleaner.clean_old_videos(days_after_modification = 3)
+        video_file_cleaner.clean_old_videos(days_after_modification=3)
         existingVideos = fileutils.get_files_in_dir(VIDEO_DIR)
         print(f"Existing videos: {','.join(existingVideos)}")
 

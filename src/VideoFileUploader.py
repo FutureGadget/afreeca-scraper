@@ -1,8 +1,8 @@
 from enum import Enum
 
 import google_drive_api
+import youtube_api
 from constants import VIDEO_DIR
-from fileutils import get_date_time_file_name
 from fileutils import get_new_videos
 
 
@@ -48,9 +48,10 @@ class VideoFileUploader:
 class GoogleDriveUploader(VideoFileUploader):
     def save(self, new_videos: list):
         for filename in new_videos:
-            google_drive_api.savdAndBroadcastEmail(get_date_time_file_name(), f'{VIDEO_DIR}/{filename}')
+            google_drive_api.savdAndBroadcastEmail(filename, f'{VIDEO_DIR}/{filename}')
 
 
 class YoutubeUploader(VideoFileUploader):
     def save(self, new_videos: list):
-        pass
+        for filename in new_videos:
+            youtube_api.save(filename, f'{VIDEO_DIR}/{filename}')

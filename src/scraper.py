@@ -24,6 +24,8 @@ from bj_tracker import ShineeTracker
 from constants import *
 from errors import NotOnAirException
 from timer import Timer
+from fileutils import get_legal_filename_string
+from id_generator import generate_id
 
 HEADLESS = True
 LIVE_STREAMING_LAG_THRESHOLD_SEC = 10
@@ -52,10 +54,10 @@ def scrape(bj_home_uri):
         print(" Start from the first since the broadcasting does not seem to be on air.")
         print('!-----------------------------------------------------------------------!')
     except Exception as e:
-        logger_config.logger('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        logger_config.logger('Exception while scraping...')
+        logger_config.logger.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        logger_config.logger.error('Exception while scraping...')
         logger_config.logger.error(traceback.format_exc())
-        logger_config.logger('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        logger_config.logger.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         raise e
     finally:
         driver.quit()
@@ -71,9 +73,10 @@ def get_driver() -> WebDriver:
     options.add_argument("--no-sandbox") # https://stackoverflow.com/questions/53902507/unknown-error-session-deleted-because-of-page-crash-from-unknown-error-cannot
     options.add_argument("--disable-dev-shm-usage") # https://stackoverflow.com/questions/53902507/unknown-error-session-deleted-because-of-page-crash-from-unknown-error-cannot
     options.add_argument("--window-size=1920,1080")
-    
+
     return webdriver.Remote(command_executor='http://chrome:4444/wd/hub', desired_capabilities=caps, options=options) # connect remote webdriver to docker standalone chrome
     # return webdriver.Chrome(desired_capabilities=caps, options=options)
+
 
 def do_scrape(driver: WebDriver, bj_home_uri: str):
     driver = get_player(driver, bj_home_uri)
@@ -82,7 +85,12 @@ def do_scrape(driver: WebDriver, bj_home_uri: str):
     print(cookies)
     print("*********************")
 
-    filename = f"{VIDEO_DIR}/{str(int(time.time()))}.mpeg"
+    broadcast_title = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, '//*[@id="player_area"]/div[2]/div[2]/div[4]/span'))).text
+    filename_friendly_broadcast_title = get_legal_filename_string(broadcast_title)
+
+    filename = f"{VIDEO_DIR}/{filename_friendly_broadcast_title}-{generate_id(6)}.mpeg"
+    logger_config.stream_logger.info(f'Save file name: {filename}')
+
     # Must click play button to start streaming.
     play = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="stop_screen"]/dl/dd[2]/a')))
     play.click()
@@ -131,7 +139,7 @@ def download_by_m3u8(driver: WebDriver, filename: str, cookies: dict, timer: Tim
 
                 if (len(requests)) == 0 and timer.is_over_due():
                     return
-                
+
                 for e in requests:
                     m3u8Req = find_m3u8_request(e)
                     if m3u8Req:
@@ -139,14 +147,14 @@ def download_by_m3u8(driver: WebDriver, filename: str, cookies: dict, timer: Tim
                         m3u8Url = m3u8Req['request']['url']
                         finished = True
                         break
-            
+
             executor.submit(close_driver, driver)
 
             if m3u8Url:
                 print(f'Request m3u8 url detected: {m3u8Url}')
                 ShineeTracker.broadcast_started()
                 do_download(m3u8Url, filename, cookies, executor)
-                
+
         except Exception as e:
             logger_config.logger.error('ERROR: Download by m3u8 exception: ')
             logger_config.logger.error(traceback.format_exc())

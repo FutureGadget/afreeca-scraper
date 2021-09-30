@@ -9,11 +9,13 @@ from google_cred import get_cred
 
 def savdAndBroadcastEmail(title, filename):
     creds = get_cred()
-    service = build('drive', 'v3', credentials=creds)
+    service = build('drive', 'v3', credentials=creds, cache_discovery=False)
     return insert_file(service, title, '1bE-A_oYEyRjsBJZrKGrgeNLNrzktwR87', 'video/mpeg', filename)
+
 
 def get_file_link(fileId):
     return f"https://drive.google.com/file/d/{fileId}/view?usp=sharing"
+
 
 def insert_file(service, title, parent_id, mime_type, filename):
     media = MediaFileUpload(filename, mimetype=mime_type, resumable=True)
@@ -35,16 +37,17 @@ def insert_file(service, title, parent_id, mime_type, filename):
             status, response = request.next_chunk()
             if status:
                 print(f"Uploaded {int(status.progress() * 100)}%")
-        
+
         # Uncomment the following line to print the File ID
         print(f"File ID: {response.get('id')}")
-        fileLink = get_file_link(response.get('id'))
-        broadcast_to_enrolled_users('샤순신 강의배달!',f'링크: {fileLink}')
+        file_link = get_file_link(response.get('id'))
+        broadcast_to_enrolled_users(f'[Live Recording]{title}', f'링크: {file_link}')
 
         return response
     except errors.HttpError as error:
         print(f'An error occured: {error}')
         return None
+
 
 if __name__ == '__main__':
     savdAndBroadcastEmail('test.mpeg', f'{VIDEO_DIR}/1631065306.mpeg')
