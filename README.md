@@ -20,6 +20,5 @@ Download afreeca live stream and upload it to Google drive, then send you an ema
     > docker kill --signal=SIGINT {container id}
 
 ## TODOs
-0. Save video file name following the original live stream name which the BJ set.
-1. manage replica set to enhance availablity
+1. manage replica set to enhance availability
 2. enhance observability (monitoring)

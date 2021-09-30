@@ -1,15 +1,14 @@
-from scraper import scrape
-from constants import *
-from bannerprinter import show_banner
-from bj_tracker import ShineeTracker
-from video_file_uploader import save_and_upload_new_videos
-import video_file_cleaner
-import fileutils
-
 import sys
 import time
-import os
 
+import fileutils
+import video_file_cleaner
+from VideoFileUploader import VideoUploaderType
+from VideoFileUploader import get_video_file_uploader
+from bannerprinter import show_banner
+from bj_tracker import ShineeTracker
+from constants import *
+from scraper import scrape
 
 if __name__ == '__main__':
     show_banner()
@@ -17,9 +16,10 @@ if __name__ == '__main__':
     print(f'Email recipients: {EMAIL_RECEPIENTS}')
 
     shinee_tracker = ShineeTracker(start_tomorrow=True)
-    
+    uploader = get_video_file_uploader(VideoUploaderType.GOOGLE_DRIVE)
+
     while True:
-        video_file_cleaner.clean_old_videos(days_after_modification = 3)
+        video_file_cleaner.clean_old_videos(days_after_modification=3)
         existingVideos = fileutils.get_files_in_dir(VIDEO_DIR)
         print(f"Existing videos: {','.join(existingVideos)}")
 
@@ -31,7 +31,7 @@ if __name__ == '__main__':
             print('===============================')
             break
         finally:
-            save_and_upload_new_videos(existingVideos, SAVE_ON_DRIVE_AND_NOTIFY)
+            uploader.upload_new_videos(existingVideos, SAVE_ON_DRIVE_AND_NOTIFY)
             shinee_tracker.send_email_if_had_no_live_today()
         time.sleep(60)
 
