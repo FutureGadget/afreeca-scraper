@@ -1,4 +1,5 @@
 from constants import TOKEN_DIR
+from constants import CREDENTIAL_FILE
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
@@ -10,7 +11,7 @@ from constants import SECRETS_DIR
 
 tokenFile = f'{TOKEN_DIR}/token.json'
 
-client_secrets_file = f'{SECRETS_DIR}/client_secret_145861033977-k4oc4je2bmg8ai4undjd7190bebqm69i.apps.googleusercontent.com.json'
+client_secrets_file = f'{SECRETS_DIR}/{CREDENTIAL_FILE}'
 
 SCOPES = ['https://mail.google.com/', 'https://www.googleapis.com/auth/drive']
 

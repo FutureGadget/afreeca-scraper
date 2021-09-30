@@ -1,10 +1,11 @@
-from constants import VIDEO_DIR
-from google_cred import get_cred
-from googleapiclient.discovery import build
 from googleapiclient import errors
+from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
+from constants import VIDEO_DIR
 from gmail import broadcast_to_enrolled_users
+from google_cred import get_cred
+
 
 def savdAndBroadcastEmail(title, filename):
     creds = get_cred()
@@ -19,7 +20,8 @@ def insert_file(service, title, parent_id, mime_type, filename):
     media.stream()
     file_metadata = {
         'name': title
-    }# Set the parent folder.
+    }
+    # Set the parent folder.
     if parent_id:
         file_metadata['parents'] = [parent_id]
 

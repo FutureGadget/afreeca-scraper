@@ -1,34 +1,29 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.webdriver import WebDriver
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-from selenium.webdriver import ActionChains
+import concurrent.futures as cf
 import json
-import requests as rq
-
-from afreeca_utils import get_player
-from constants import *
-
-from timer import Timer
-
+import queue
 import time
 import traceback
+from urllib.parse import urljoin
+from urllib.parse import urlsplit
 
 import m3u8
-from urllib.parse import urlsplit
-from urllib.parse import urljoin
-from urllib3.util.retry import Retry
+import requests as rq
 from requests.adapters import HTTPAdapter
-
-from errors import NotOnAirException
+from selenium import webdriver
+from selenium.webdriver import ActionChains
+from selenium.webdriver.chrome.webdriver import WebDriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from urllib3.util.retry import Retry
 
 import logger_config
-
-import queue
-import concurrent.futures as cf
+from afreeca_utils import get_player
 from bj_tracker import ShineeTracker
+from constants import *
+from errors import NotOnAirException
+from timer import Timer
 
 HEADLESS = True
 LIVE_STREAMING_LAG_THRESHOLD_SEC = 10
@@ -221,7 +216,7 @@ def do_download(m3u8_url: str, filename: str, cookies, executor: cf.ThreadPoolEx
 
 
 def download_segments(filename: str, q: queue.Queue, _rq, cookies):
-    with open (filename, 'ab') as file:
+    with open(filename, 'ab') as file:
         while not g_quit:
             try:
                 (url, duration) = q.get(timeout=30)
@@ -237,8 +232,16 @@ def download_segments(filename: str, q: queue.Queue, _rq, cookies):
             except Exception as e:
                 logger_config.logger.error('ERROR: Downloading segments from m3u8 playlist')
                 logger_config.logger.error(traceback.format_exc())
-                q.all_tasks_done()
-                raise NotOnAirException()
+
+                if not q.empty():
+                    logger_config.logger.info('Try recover from error since the streaming queue is not empty.')
+                    # Flush all delayed segments.
+                    while not q.empty():
+                        q.get(block=False)
+                    pass
+                else:
+                    logger_config.logger.info('Stop downloading segments since the streaming has been stopped.')
+                    raise NotOnAirException()
             finally:
                 q.task_done()
 
