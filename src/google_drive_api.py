@@ -3,14 +3,13 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 from constants import VIDEO_DIR
-from gmail import broadcast_to_enrolled_users
 from google_cred import get_cred
 
 
-def savdAndBroadcastEmail(title, filename):
-    creds = get_cred()
-    service = build('drive', 'v3', credentials=creds, cache_discovery=False)
-    return insert_file(service, title, '1bE-A_oYEyRjsBJZrKGrgeNLNrzktwR87', 'video/mpeg', filename)
+def save(filename, filepath):
+    cred = get_cred()
+    service = build('drive', 'v3', credentials=cred, cache_discovery=False)
+    return insert_file(service, filename, '1bE-A_oYEyRjsBJZrKGrgeNLNrzktwR87', 'video/mpeg', filepath)
 
 
 def get_file_link(fileId):
@@ -41,13 +40,11 @@ def insert_file(service, title, parent_id, mime_type, filename):
         # Uncomment the following line to print the File ID
         print(f"File ID: {response.get('id')}")
         file_link = get_file_link(response.get('id'))
-        broadcast_to_enrolled_users(f'[Live Recording]{title}', f'링크: {file_link}')
-
-        return response
+        return file_link
     except errors.HttpError as error:
         print(f'An error occured: {error}')
         return None
 
 
 if __name__ == '__main__':
-    savdAndBroadcastEmail('test.mpeg', f'{VIDEO_DIR}/1631065306.mpeg')
+    save('test.mpeg', f'{VIDEO_DIR}/1631065306.mpeg')

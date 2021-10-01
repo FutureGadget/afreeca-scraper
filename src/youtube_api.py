@@ -36,11 +36,11 @@ def save(title, filepath):
 
         print(f'upload done: {response}')
         print(f"File ID: {response.get('id')}")
-        file_line = get_file_link(response.get('id'))
-        print(file_line)
+        file_link = get_file_link(response.get('id'))
+        print(file_link)
         # broadcast_to_enrolled_users('샤순신 강의배달!', f'링크: {fileLink}')
 
-        return response
+        return file_link
     except errors.HttpError as error:
         print(f'An error occured: {error}')
         return None

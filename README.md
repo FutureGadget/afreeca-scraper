@@ -22,3 +22,10 @@ Download afreeca live stream and upload it to Google drive, then send you an ema
 ## TODOs
 1. manage replica set to enhance availability
 2. enhance observability (monitoring)
+
+## Run Local (to get authenticated in console)
+1. Run standalone chrome
+> docker run -d -p 4444:4444 --shm-size="2g" selenium/standalone-chrome:latest
+2. Add `127.0.0.1 chrome` to `/etc/hosts`
+3. run
+> python src/main.py

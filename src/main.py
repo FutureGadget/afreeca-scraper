@@ -16,7 +16,7 @@ if __name__ == '__main__':
     print(f'Email recipients: {EMAIL_RECEPIENTS}')
 
     shinee_tracker = ShineeTracker(start_tomorrow=True)
-    uploader = get_video_file_uploader(VideoUploaderType.GOOGLE_DRIVE)
+    uploader = get_video_file_uploader(VideoUploaderType.YOUTUBE)
 
     while True:
         video_file_cleaner.clean_old_videos(days_after_modification=3)
