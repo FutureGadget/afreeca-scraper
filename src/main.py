@@ -3,7 +3,7 @@ import time
 
 import fileutils
 import video_file_cleaner
-from VideoFileUploader import VideoUploaderType
+from video_uploader_type import VideoUploaderType
 from VideoFileUploader import get_video_file_uploader
 from bannerprinter import show_banner
 from bj_tracker import ShineeTracker
@@ -16,7 +16,8 @@ if __name__ == '__main__':
     print(f'Email recipients: {EMAIL_RECEPIENTS}')
 
     shinee_tracker = ShineeTracker(start_tomorrow=True)
-    uploader = get_video_file_uploader(VideoUploaderType.YOUTUBE)
+    youtube_uploader = get_video_file_uploader(VideoUploaderType.YOUTUBE)
+    gdrive_uploader = get_video_file_uploader(VideoUploaderType.GOOGLE_DRIVE)
 
     while True:
         video_file_cleaner.clean_old_videos(days_after_modification=3)
@@ -31,7 +32,8 @@ if __name__ == '__main__':
             print('===============================')
             break
         finally:
-            uploader.upload_new_videos(existingVideos, SAVE_ON_DRIVE_AND_NOTIFY)
+            youtube_uploader.upload_new_videos(existingVideos, SAVE_ON_DRIVE_AND_NOTIFY)
+            gdrive_uploader.upload_new_videos(existingVideos, SAVE_ON_DRIVE_AND_NOTIFY)
             shinee_tracker.send_email_if_had_no_live_today()
         time.sleep(60)
 

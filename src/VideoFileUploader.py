@@ -1,15 +1,10 @@
-from enum import Enum
+from video_uploader_type import VideoUploaderType
 
 import google_drive_api
 import youtube_api
 from constants import VIDEO_DIR
 from fileutils import get_new_videos
 from gmail import broadcast_to_enrolled_users
-
-
-class VideoUploaderType(Enum):
-    GOOGLE_DRIVE = 0
-    YOUTUBE = 1
 
 
 def get_video_file_uploader(type: VideoUploaderType):
