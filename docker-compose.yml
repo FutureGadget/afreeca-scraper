@@ -15,7 +15,7 @@ services:
     restart: on-failure
     environment:
       - PYTHONUNBUFFERED=1 # print stdout logs immediately when `docker logs -f {containerId}`
-      - ENV=dev # set this to an appropriate value (possible values: prod, dev)
+      - ENV=${ENV} # set this to an appropriate value (possible values: prod, dev)
     logging:
       driver: "json-file"
       options:

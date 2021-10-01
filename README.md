@@ -14,10 +14,17 @@ ShineeScraper is an Afreeca TV live stream downloader.
 Download afreeca live stream and upload it to Google drive, then send you an email so that you can watch it later anytime you want.
 
 ## Now, this app is dockerized🎉
-1. To execute,
+1. To execute, 
+   * with production config,
+    > docker compose --env-file .env.prod up -d
+   * with development config,
     > docker compose up -d
 2. To send SIGINT (stop program and send the recording to recipients)
     > docker kill --signal=SIGINT {container id}
+
+## Useful docker compose commands
+1. To rebuild after changing source codes,
+    > docker compose up -d --build
 
 ## TODOs
 a. Separation of notification receiver (youtube, googledrive)
