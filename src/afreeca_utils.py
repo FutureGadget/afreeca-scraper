@@ -8,14 +8,17 @@ from errors import NotOnAirException
 
 from constants import *
 
+
 def get_player(driver, broadcastUrl):
     try:
         driver.get(broadcastUrl)
         playButton = driver.find_element_by_xpath('//*[@id="bs-navi"]/div/article[1]/div[1]/a/span/img')
-        WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="bs-navi"]/div/article[1]/div[1]/a/span/img')))
-        thumbnailUrl = playButton.get_attribute('src') # returns None if not present. (e.g. Not on air.)
+        WebDriverWait(driver, 3).until(
+            EC.element_to_be_clickable((By.XPATH, '//*[@id="bs-navi"]/div/article[1]/div[1]/a/span/img')))
+        thumbnailUrl = playButton.get_attribute('src')  # returns None if not present. (e.g. Not on air.)
         o = urlparse(thumbnailUrl)
-        webPlayerUrl = urljoin(urljoin(PLAYER_ROOT_URL, urlparse(broadcastUrl).path) + '/', o.path.split('/')[2].split('.')[0])
+        webPlayerUrl = urljoin(urljoin(PLAYER_ROOT_URL, urlparse(broadcastUrl).path) + '/',
+                               o.path.split('/')[2].split('.')[0])
         print(f'live thumbnail: {o.path}')
         print(f'live web player url: {webPlayerUrl}')
 
@@ -24,6 +27,7 @@ def get_player(driver, broadcastUrl):
     except Exception as e:
         print(f'exception while getting afreeca player url for {broadcastUrl}, {e}')
         raise NotOnAirException()
+
 
 if __name__ == '__main__':
     # broadcastUrl = SHINEE

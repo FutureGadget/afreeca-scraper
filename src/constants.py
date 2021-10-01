@@ -27,7 +27,7 @@ config_file = (CONFIG_FILE_PATH / f"{CONFIG_FILE_NAME_PREFIX}-{ENVIRONMENT}{CONF
 config.read(config_file)
 
 TARGET_BJ = config['Recording']['target_bj_home_uri']
-EMAIL_RECEPIENTS = config['Notification']['recipients'].split(',')
+EMAIL_RECIPIENTS = config['Notification']['recipients'].split(',')
 SAVE_ON_DRIVE_AND_NOTIFY = config.getboolean('Notification', 'save_on_google_drive_and_notify')
 GOOGLE_DRIVE_CRED_FILE = config['GoogleDrive']['cred_file']
 YOUTUBE_CRED_FILE = config['YouTube']['cred_file']
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     print(SECRETS_DIR)
     print(TARGET_BJ)
     print(CONFIG_FILE_PATH)
-    print(EMAIL_RECEPIENTS)
+    print(EMAIL_RECIPIENTS)
     print(SAVE_ON_DRIVE_AND_NOTIFY)
     print(config_file)
     print(GOOGLE_DRIVE_CRED_FILE)

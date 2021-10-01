@@ -13,7 +13,7 @@ from scraper import scrape
 if __name__ == '__main__':
     show_banner()
     print(f'Target BJ URI: {TARGET_BJ}')
-    print(f'Email recipients: {EMAIL_RECEPIENTS}')
+    print(f'Email recipients: {EMAIL_RECIPIENTS}')
 
     shinee_tracker = ShineeTracker(start_tomorrow=True)
     youtube_uploader = get_video_file_uploader(VideoUploaderType.YOUTUBE)

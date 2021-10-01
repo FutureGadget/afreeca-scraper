@@ -3,7 +3,7 @@ from googleapiclient.discovery import build
 from googleapiclient import errors
 
 from email.mime.text import MIMEText
-from constants import EMAIL_RECEPIENTS
+from constants import EMAIL_RECIPIENTS
 
 import base64
 
@@ -26,7 +26,7 @@ def create_message(to, subject, message_text):
     return {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')}
 
 
-def sendEmailTo(message):
+def send_email_to(message):
     cred = get_cred()
     service = build('gmail', 'v1', credentials=cred, cache_discovery=False)
 
@@ -42,7 +42,7 @@ def broadcast_to_enrolled_users(subject, message_text):
     cred = get_cred()
     service = build('gmail', 'v1', credentials=cred, cache_discovery=False)
 
-    for recipients in EMAIL_RECEPIENTS:
+    for recipients in EMAIL_RECIPIENTS:
         message = create_message(to=recipients, subject=subject, message_text=message_text)
         try:
             message = (service.users().messages().send(userId='me', body=message).execute())
