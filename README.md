@@ -20,6 +20,8 @@ Download afreeca live stream and upload it to Google drive, then send you an ema
     > docker kill --signal=SIGINT {container id}
 
 ## TODOs
+a. Separation of notification receiver (youtube, googledrive)
+b. Deployment script (create necessary directories, build docker image, and deploy)
 1. manage replica set to enhance availability
 2. enhance observability (monitoring)
 
