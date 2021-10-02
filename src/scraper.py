@@ -215,9 +215,8 @@ def do_download(m3u8_url: str, filename: str, cookies, executor: cf.ThreadPoolEx
     q = queue.Queue()
 
     # Thread(target=enqueue_ts_urls, args=(m3u8_url, cookies, s, q), daemon=True).start()
-    futures = []
-    futures.append(executor.submit(enqueue_ts_urls, m3u8_url, cookies, s, q))
-    futures.append(executor.submit(download_segments, filename, q, s, cookies))
+    futures = [executor.submit(enqueue_ts_urls, m3u8_url, cookies, s, q),
+               executor.submit(download_segments, filename, q, s, cookies)]
 
     # Keep looping to handle KeyboardInterrupt signal (SIGINT)
     # http://www.luke.maurits.id.au/blog/post/threads-and-signals-in-python.html
@@ -260,7 +259,9 @@ def download_segments(filename: str, q: queue.Queue, _rq, cookies):
                     logger_config.logger.info('Try recover from error since the streaming queue is not empty.')
                     # Flush all delayed segments.
                     while not q.empty():
-                        q.get(block=False)
+                        #
+                        uri = q.get(block=False)
+                        logger_config.logger.info(f'Flushing delayed uris: {uri}')
                     pass
                 else:
                     logger_config.logger.info('Stop downloading segments since the streaming has been stopped.')
@@ -304,10 +305,10 @@ def download(driver, filename, cookies, timer):
             return
 
         for e in requests:
-            tsReq = find_ts_request(e)
-            if tsReq:
+            ts_req = find_ts_request(e)
+            if ts_req:
                 timer.reset()
-                url = tsReq['request']['url']
+                url = ts_req['request']['url']
                 r1 = rq.get(url, stream=True, headers=get_headers(cookies), timeout=2)
                 if r1.status_code == 200:
                     print(f'{url} - OK')
