@@ -23,9 +23,10 @@ from afreeca_utils import get_player
 from bj_tracker import ShineeTracker
 from constants import *
 from errors import NotOnAirException
-from timer import Timer
 from fileutils import get_legal_filename_string
 from id_generator import generate_id
+from ordered_set import OrderedSet
+from timer import Timer
 
 HEADLESS = True
 LIVE_STREAMING_LAG_THRESHOLD_SEC = 10
@@ -177,8 +178,7 @@ def download_by_m3u8(driver: WebDriver, filename: str, cookies: dict, timer: Tim
 
 
 def enqueue_ts_urls(m3u8_url, cookies, _rq, q):
-    unq = set()
-    entries = queue.SimpleQueue()
+    uri_set_windowed = OrderedSet(window=1000)
     while not g_quit:
         sleep_time = 0
         try:
@@ -187,14 +187,10 @@ def enqueue_ts_urls(m3u8_url, cookies, _rq, q):
                 playlist = m3u8.loads(res.text)
                 root_uri = get_m3u8_root_uri(m3u8_url)
                 for s in playlist.segments:
-                    if s.uri in unq:
+                    if s.uri in uri_set_windowed:
                         print(f'Duplicate URI: {s.uri}')
                     else:
-                        if len(unq) > 10:
-                            old_uri = entries.get()
-                            unq.remove(old_uri)
-                        unq.add(s.uri)
-                        entries.put(s.uri)
+                        uri_set_windowed.add(s.uri)
                         url = urljoin(root_uri, s.uri)
                         q.put((url, s.duration))
                         print(f'Put segment: url-{url}, duration-{s.duration} => OK')
