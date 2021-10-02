@@ -5,9 +5,11 @@ import youtube_api
 from constants import VIDEO_DIR
 from fileutils import get_new_videos
 from gmail import broadcast_to_enrolled_users
+from google_cred import get_cred
 
 
 def get_video_file_uploader(type: VideoUploaderType):
+    get_cred(type)  # initialize token
     if type is VideoUploaderType.GOOGLE_DRIVE:
         return GoogleDriveUploader()
     elif type is VideoUploaderType.YOUTUBE:

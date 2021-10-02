@@ -29,8 +29,7 @@ config.read(config_file)
 TARGET_BJ = config['Recording']['target_bj_home_uri']
 EMAIL_RECIPIENTS = config['Notification']['recipients'].split(',')
 SAVE_ON_DRIVE_AND_NOTIFY = config.getboolean('Notification', 'save_on_google_drive_and_notify')
-GOOGLE_DRIVE_CRED_FILE = config['GoogleDrive']['cred_file']
-YOUTUBE_CRED_FILE = config['YouTube']['cred_file']
+CLIENT_CRED_FILE = (SECRETS_DIR / config['Credential']['file']).resolve()
 
 if __name__ == '__main__':
     print(VIDEO_DIR)
@@ -41,5 +40,4 @@ if __name__ == '__main__':
     print(EMAIL_RECIPIENTS)
     print(SAVE_ON_DRIVE_AND_NOTIFY)
     print(config_file)
-    print(GOOGLE_DRIVE_CRED_FILE)
-    print(YOUTUBE_CRED_FILE)
+    print(CLIENT_CRED_FILE)
