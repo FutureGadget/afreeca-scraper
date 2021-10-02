@@ -32,8 +32,8 @@ Download afreeca live stream and upload it to Google drive, then send you an ema
     > docker compose up -d --build
 
 ## TODOs
-a. Separation of notification receiver (youtube, googledrive)
-b. Deployment script (create necessary directories, build docker image, and deploy)
+0. Make this an web application.
+   - Google drive, youtube, gmail notification must be retrieved by user interaction.
 1. manage replica set to enhance availability
 2. enhance observability (monitoring)
 
