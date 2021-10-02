@@ -30,27 +30,27 @@ def get_client_secrets_file(video_uploader_type: VideoUploaderType) -> str:
 
 
 def get_cred(video_uploader_type: VideoUploaderType = VideoUploaderType.GOOGLE_DRIVE):
-    creds = None
-    tokenFile = get_token_file(video_uploader_type)
+    cred = None
+    token_file = get_token_file(video_uploader_type)
     client_secrets_file = get_client_secrets_file(video_uploader_type)
     # Get credentials and create an API client
-    if os.path.exists(tokenFile):
-        creds = Credentials.from_authorized_user_file(tokenFile, SCOPES)
+    if os.path.exists(token_file):
+        cred = Credentials.from_authorized_user_file(token_file, SCOPES)
     try:
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
+        if not cred or not cred.valid:
+            if cred and cred.expired and cred.refresh_token:
+                cred.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(client_secrets_file, SCOPES)
-                creds = flow.run_console()
-            with open(tokenFile, 'w') as token:
-                token.write(creds.to_json())
+                cred = flow.run_console()
+            with open(token_file, 'w') as token:
+                token.write(cred.to_json())
     except RefreshError as e:
         print(e)
         flow = InstalledAppFlow.from_client_secrets_file(client_secrets_file, SCOPES)
-        creds = flow.run_console()
-        with open(tokenFile, 'w') as token:
-            token.write(creds.to_json())
+        cred = flow.run_console()
+        with open(token_file, 'w') as token:
+            token.write(cred.to_json())
     except Exception as e:
         print(e)
-    return creds
+    return cred
