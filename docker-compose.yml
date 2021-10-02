@@ -1,7 +1,7 @@
 version: "3.9"
 services:
   shinee-scraper:
-    build: .
+#    build: .
     image: mojo1821/shinee-scraper:latest
     volumes:
       - "./token:/afreeca-scraper/token"
