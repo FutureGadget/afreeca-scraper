@@ -13,6 +13,11 @@
 ShineeScraper is an Afreeca TV live stream downloader.
 Download afreeca live stream and upload it to Google drive, then send you an email so that you can watch it later anytime you want.
 
+## Build and push
+> docker login
+> docker build -t mojo1821/shinee-scraper:latest .
+> docker push mojo1821/shinee-scraper:latest
+
 ## Now, this app is dockerized🎉
 1. To execute, 
    * with production config,
@@ -34,7 +39,7 @@ b. Deployment script (create necessary directories, build docker image, and depl
 
 ## Run Local (to get authenticated in console)
 1. Run standalone chrome
-> docker run -d -p 4444:4444 --shm-size="2g" selenium/standalone-chrome:latest
+> docker run -d -p 4444:4444 --shm-size="2g" mojo1821/standalone-chrome:latest
 2. Add `127.0.0.1 chrome` to `/etc/hosts`
 3. run
 > python src/main.py

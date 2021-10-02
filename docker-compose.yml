@@ -1,8 +1,8 @@
 version: "3.9"
 services:
-  scraper:
+  shinee-scraper:
     build: .
-    image: afreeca-scraper:latest
+    image: mojo1821/shinee-scraper:latest
     volumes:
       - "./token:/afreeca-scraper/token"
       - "./secrets:/afreeca-scraper/secrets"
@@ -24,7 +24,7 @@ services:
 
   
   chrome:
-    image: selenium/standalone-chrome:latest
+    image: mojo1821/standalone-chrome:latest # copied version of selenium/standalone-chrome:latest
     ports:
       - "4444:4444"
     restart: always
