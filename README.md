@@ -34,6 +34,7 @@ Download afreeca live stream and upload it to Google drive, then send you an ema
 ## TODOs
 0. Make this an web application.
    - Google drive, youtube, gmail notification must be retrieved by user interaction.
+   - Should be able to retry upload manually after manually refreshing token.
 1. manage replica set to enhance availability
 2. enhance observability (monitoring)
 

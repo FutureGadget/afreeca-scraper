@@ -59,3 +59,11 @@ class YoutubeUploader(VideoFileUploader):
         for filename in new_videos:
             filename_and_links.append((filename, youtube_api.save(filename, f'{VIDEO_DIR}/{filename}')))
         return filename_and_links
+
+
+if __name__ == '__main__':
+    gdrive_uploader = get_video_file_uploader(VideoUploaderType.GOOGLE_DRIVE)
+    ytube_uploader = get_video_file_uploader(VideoUploaderType.YOUTUBE)
+
+    gdrive_uploader.upload_new_videos([], True)
+    ytube_uploader.upload_new_videos([], True)
