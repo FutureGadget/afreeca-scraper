@@ -60,7 +60,7 @@ class ShineeTracker:
                 subject='샤교수 스타강의는 오늘 휴강으로 보인다.',
                 message_text='이 메일은 오후 4시가 지났는데 오늘의 샤교수 강의가 시작되지 않았으면 발송되는 메일이다.\n\
                     샤튜브 주소: https://www.youtube.com/channel/UCJNTwhCAZX6hJkbUB4TKdZQ\n\
-                    샤녹방 주소: https://drive.google.com/drive/folders/1bE-A_oYEyRjsBJZrKGrgeNLNrzktwR87'
+                    샤녹방 주소: https://studio.youtube.com/channel/UCWif_OFSioIKFLDka9PmXRg/videos/upload'
             )
             self.last_email_sent = get_now_as_kst()
 
