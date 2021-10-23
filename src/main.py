@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
     shinee_tracker = ShineeTracker(start_tomorrow=True)
     youtube_uploader = get_video_file_uploader(VideoUploaderType.YOUTUBE)
-    gdrive_uploader = get_video_file_uploader(VideoUploaderType.GOOGLE_DRIVE)
+    # gdrive_uploader = get_video_file_uploader(VideoUploaderType.GOOGLE_DRIVE)
 
     while True:
         video_file_cleaner.clean_old_videos(days_after_modification=3)
@@ -33,7 +33,7 @@ if __name__ == '__main__':
             break
         finally:
             youtube_uploader.upload_new_videos(existingVideos, SAVE_ON_DRIVE_AND_NOTIFY)
-            gdrive_uploader.upload_new_videos(existingVideos, SAVE_ON_DRIVE_AND_NOTIFY)
+            # gdrive_uploader.upload_new_videos(existingVideos, SAVE_ON_DRIVE_AND_NOTIFY)
             shinee_tracker.send_email_if_had_no_live_today()
         time.sleep(60)
 
