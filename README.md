@@ -13,6 +13,16 @@
 ShineeScraper is an Afreeca TV live stream downloader.
 Download afreeca live stream and upload it to Google drive, then send you an email so that you can watch it later anytime you want.
 
+# How to execute this program?
+1. You should configure which BJ this program should monitor. When the BJ starts streaming, the recording will be started automatically. Only 1 BJ can be monitored at a time.
+2. Google API secret json file is needed and properly located.
+3. Youtube and gmail token should be set.
+4. Necessary directories should be made in advance.
+  - token/youtube
+  - secrets
+  - logs
+  - videos
+
 ## Build and push
 > docker login
 > docker build -t mojo1821/shinee-scraper:latest .
