@@ -20,7 +20,7 @@ def get_token_file(video_uploader_type: VideoUploaderType) -> str:
         return f'{TOKEN_DIR}/youtube/token.json'
 
 
-def get_cred(video_uploader_type: VideoUploaderType = VideoUploaderType.GOOGLE_DRIVE):
+def get_cred(video_uploader_type: VideoUploaderType = VideoUploaderType.YOUTUBE):
     cred = None
     token_file = get_token_file(video_uploader_type)
     # Get credentials and create an API client
