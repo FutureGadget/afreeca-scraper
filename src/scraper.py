@@ -38,10 +38,10 @@ global g_quit
 g_quit = False
 
 
-def get_headers(cookies):
+def get_headers(cookies, uri):
     return {'Cookie': create_live_cookie_string(cookies), 'Accept': '*/*', 'Accept-Encoding': 'gzip, deflate, br',
             'Accept-Language': 'ko-KR,ko;q=0.8,en-US;q=0.5,en;q=0.3', 'Connection': 'keep-alive',
-            'Host': 'pc-web.stream.afreecatv.com', 'Origin': 'https://play.afreecatv.com', 'Referer': 'https://play.afreecatv.com/onlysibar/235673275',
+            'Host': 'pc-web.stream.afreecatv.com', 'Origin': 'https://play.afreecatv.com', 'Referer': uri,
             'Sec-Fetch-Dest': 'emtpy', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-site', 'TE': 'trailers',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0'}
 
@@ -96,6 +96,10 @@ def do_scrape(driver: WebDriver, bj_home_uri: str):
     print("*******COOKIES*******")
     print(cookies)
     print("*********************")
+    headers = get_headers(cookies, driver.current_url)
+    print("*******HEADERS*******")
+    print(headers)
+    print("*********************")
 
     broadcast_title = WebDriverWait(driver, 10).until(
         EC.visibility_of_element_located((By.XPATH, '//*[@id="player_area"]/div[2]/div[2]/div[4]/span'))).text
@@ -112,18 +116,16 @@ def do_scrape(driver: WebDriver, bj_home_uri: str):
     skip_to_low_quality_video = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable((By.XPATH, '//*[@id="layer_high_quality"]/div/span/a')))
     skip_to_low_quality_video.click()
-    scrape_with_retry(driver, filename, cookies)
+    scrape_with_retry(driver, filename, headers)
 
 
-def scrape_with_retry(driver: WebDriver, filename: str, cookies: dict):
+def scrape_with_retry(driver: WebDriver, filename: str, headers):
     retrycnt = 0
     timer = Timer.threshold(LIVE_STREAMING_LAG_THRESHOLD_SEC)
     timer.start()
     while retrycnt < RETRY_COUNT_THRESHOLD:
         try:
-            # download(driver, filename, cookies, timer)
-            download_by_m3u8(driver, filename, cookies, timer)
-            # retry
+            download_by_m3u8(driver, filename, headers, timer)
             print('Retrying...')
         except NotOnAirException as e:
             raise e
@@ -142,7 +144,7 @@ def close_driver(driver):
     driver.close()
 
 
-def download_by_m3u8(driver: WebDriver, filename: str, cookies: dict, timer: Timer):
+def download_by_m3u8(driver: WebDriver, filename: str, headers, timer: Timer):
     with cf.ThreadPoolExecutor(max_workers=5) as executor:
         finished = False
         m3u8Url = None
@@ -169,19 +171,19 @@ def download_by_m3u8(driver: WebDriver, filename: str, cookies: dict, timer: Tim
             if m3u8Url:
                 print(f'Request m3u8 url detected: {m3u8Url}')
                 ShineeTracker.broadcast_started()
-                do_download(m3u8Url, filename, cookies, executor)
+                do_download(m3u8Url, filename, headers, executor)
 
         except Exception as e:
             logger_config.logger.error('ERROR: Download by m3u8 exception: ')
             logger_config.logger.error(traceback.format_exc())
 
 
-def enqueue_ts_urls(m3u8_url, cookies, _rq, q):
+def enqueue_ts_urls(m3u8_url, headers, _rq, q):
     uri_set_windowed = OrderedSet(window=1000)
     while not g_quit:
         sleep_time = 0
         try:
-            res = _rq.get(m3u8_url, headers=get_headers(cookies), timeout=2)
+            res = _rq.get(m3u8_url, headers=headers, timeout=2)
             if res.status_code == 200:
                 playlist = m3u8.loads(res.text)
                 root_uri = get_m3u8_root_uri(m3u8_url)
@@ -205,7 +207,7 @@ def enqueue_ts_urls(m3u8_url, cookies, _rq, q):
             raise NotOnAirException()
 
 
-def do_download(m3u8_url: str, filename: str, cookies, executor: cf.ThreadPoolExecutor):
+def do_download(m3u8_url: str, filename: str, headers, executor: cf.ThreadPoolExecutor):
     s = rq.Session()
     retries = Retry(total=5,
                     backoff_factor=0.1,
@@ -213,9 +215,8 @@ def do_download(m3u8_url: str, filename: str, cookies, executor: cf.ThreadPoolEx
     s.mount('https://', HTTPAdapter(max_retries=retries))
     q = queue.Queue()
 
-    # Thread(target=enqueue_ts_urls, args=(m3u8_url, cookies, s, q), daemon=True).start()
-    futures = [executor.submit(enqueue_ts_urls, m3u8_url, cookies, s, q),
-               executor.submit(download_segments, filename, q, s, cookies)]
+    futures = [executor.submit(enqueue_ts_urls, m3u8_url, headers, s, q),
+               executor.submit(download_segments, filename, q, s, headers)]
 
     # Keep looping to handle KeyboardInterrupt signal (SIGINT)
     # http://www.luke.maurits.id.au/blog/post/threads-and-signals-in-python.html
@@ -235,12 +236,12 @@ def do_download(m3u8_url: str, filename: str, cookies, executor: cf.ThreadPoolEx
             raise e
 
 
-def download_segments(filename: str, q: queue.Queue, _rq, cookies):
+def download_segments(filename: str, q: queue.Queue, _rq, headers):
     with open(filename, 'ab') as file:
         while not g_quit:
             try:
                 (url, duration) = q.get(timeout=30)
-                r1 = _rq.get(url, stream=True, headers=get_headers(cookies), timeout=2)
+                r1 = _rq.get(url, stream=True, headers=headers, timeout=2)
                 if r1.status_code == 200:
                     logger_config.stream_logger.debug(f'{url} => OK')
                     for chunk in r1.iter_content(chunk_size=1024):
@@ -287,35 +288,6 @@ def click_play_btn(driver, wait_sec):
     action.move_to_element_with_offset(playBtn, 2, 2)
     action.click()
     action.perform()
-
-
-def download(driver, filename, cookies, timer):
-    # Keep downloading HLS streaming segments.
-    while True:
-        browser_log = driver.get_log('performance')
-        events = [process_browser_log_entry(entry) for entry in browser_log]
-
-        requests = [event for event in events if 'Network.request' in event['method']]
-        # response = [event for event in events if 'Network.response' in event['method']]
-
-        if len(requests) == 0 and timer.is_over_due():
-            click_play_btn(driver, 10)
-            click_play_btn(driver, 10)
-            return
-
-        for e in requests:
-            ts_req = find_ts_request(e)
-            if ts_req:
-                timer.reset()
-                url = ts_req['request']['url']
-                r1 = rq.get(url, stream=True, headers=get_headers(cookies), timeout=2)
-                if r1.status_code == 200:
-                    print(f'{url} - OK')
-                    with open(filename, 'ab') as f:
-                        for chunk in r1.iter_content(chunk_size=1024):
-                            f.write(chunk)
-                else:
-                    print(f"Received unexpected status code {r1.status_code, r1.json}")
 
 
 def find_ts_request(e):
