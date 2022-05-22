@@ -30,6 +30,7 @@ TARGET_BJ = config['Recording']['target_bj_home_uri']
 EMAIL_RECIPIENTS = config['Notification']['recipients'].split(',')
 SAVE_ON_DRIVE_AND_NOTIFY = config.getboolean('Notification', 'save_on_google_drive_and_notify')
 CLIENT_CRED_FILE = (SECRETS_DIR / config['Credential']['file']).resolve()
+CHROME = config['Selenium']['remote']
 
 if __name__ == '__main__':
     print(VIDEO_DIR)
@@ -41,3 +42,4 @@ if __name__ == '__main__':
     print(SAVE_ON_DRIVE_AND_NOTIFY)
     print(config_file)
     print(CLIENT_CRED_FILE)
+    print(CHROME)

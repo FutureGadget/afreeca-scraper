@@ -41,9 +41,8 @@ g_quit = False
 def get_headers(cookies):
     return {'Cookie': create_live_cookie_string(cookies), 'Accept': '*/*', 'Accept-Encoding': 'gzip, deflate, br',
             'Accept-Language': 'ko-KR,ko;q=0.8,en-US;q=0.5,en;q=0.3', 'Connection': 'keep-alive',
-            'Host': 'pc-web.stream.afreecatv.com', 'Origin': 'https://play.afreecatv.com',
-            'Referer': 'https://play.afreecatv.com/onlysibar/235673275', 'Sec-Fetch-Dest': 'emtpy',
-            'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-site', 'TE': 'trailers',
+            'Host': 'pc-web.stream.afreecatv.com', 'Origin': 'https://play.afreecatv.com', 'Referer': 'https://play.afreecatv.com/onlysibar/235673275',
+            'Sec-Fetch-Dest': 'emtpy', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-site', 'TE': 'trailers',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0'}
 
 
@@ -86,7 +85,7 @@ def get_driver() -> WebDriver:
         "--disable-dev-shm-usage")  # https://stackoverflow.com/questions/53902507/unknown-error-session-deleted-because-of-page-crash-from-unknown-error-cannot
     options.add_argument("--window-size=1920,1080")
 
-    return webdriver.Remote(command_executor='http://chrome:4444/wd/hub', desired_capabilities=caps,
+    return webdriver.Remote(command_executor=CHROME, desired_capabilities=caps,
                             options=options)  # connect remote webdriver to docker standalone chrome
     # return webdriver.Chrome(desired_capabilities=caps, options=options)
 
