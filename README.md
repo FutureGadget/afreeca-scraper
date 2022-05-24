@@ -77,3 +77,12 @@ Make sure that the `chrome` is installed on the same machine you run this progra
 Make sure that both `standalone-chrome` and `shinee-scraper` images are built and ready to run.
 Make sure that the necessary directories exist in the binding volume.
 Run docker compose and enjoy.
+
+# Appedix
+## How to install chrome binary?
+### RHEL/CentOS
+`wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm`  
+
+`sudo yum install google-chrome-stable_current_x86_64.rpm`
+
+> https://www.lesstif.com/lpt/linux-chrome-106857342.html
