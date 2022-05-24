@@ -51,7 +51,7 @@ def create_live_cookie_string(cookie):
 
 
 def scrape(bj_home_uri):
-    driver = get_driver()
+    driver = get_driver(WEBDRIVER_TYPE)
     try:
         print('=====================START====================')
         print('Start recording when the broadcasting is onair.')
@@ -71,7 +71,7 @@ def scrape(bj_home_uri):
         driver.quit()
 
 
-def get_driver() -> WebDriver:
+def get_driver(driver_type) -> WebDriver:
     caps = DesiredCapabilities.CHROME
     caps['goog:loggingPrefs'] = {'performance': 'ALL'}
 
@@ -81,13 +81,16 @@ def get_driver() -> WebDriver:
         options.add_argument("--disable-gpu")
     options.add_argument(
         "--no-sandbox")  # https://stackoverflow.com/questions/53902507/unknown-error-session-deleted-because-of-page-crash-from-unknown-error-cannot
+    options.add_argument("--single-process")
     options.add_argument(
         "--disable-dev-shm-usage")  # https://stackoverflow.com/questions/53902507/unknown-error-session-deleted-because-of-page-crash-from-unknown-error-cannot
-    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--window-size=1024,768")
 
-    return webdriver.Remote(command_executor=CHROME, desired_capabilities=caps,
-                            options=options)  # connect remote webdriver to docker standalone chrome
-    # return webdriver.Chrome(desired_capabilities=caps, options=options)
+    if driver_type == 'REMOTE':
+        return webdriver.Remote(command_executor=CHROME, desired_capabilities=caps, options=options)  # connect remote webdriver to docker standalone chrome
+    else:
+        options.binary_location = '/usr/bin/google-chrome' # you have to install google-chrome binary
+        return webdriver.Chrome(LOCATION, desired_capabilities=caps, options=options)
 
 
 def do_scrape(driver: WebDriver, bj_home_uri: str):

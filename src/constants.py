@@ -31,6 +31,8 @@ EMAIL_RECIPIENTS = config['Notification']['recipients'].split(',')
 SAVE_ON_DRIVE_AND_NOTIFY = config.getboolean('Notification', 'notify')
 CLIENT_CRED_FILE = (SECRETS_DIR / config['Credential']['file']).resolve()
 CHROME = config['Selenium']['remote']
+WEBDRIVER_TYPE = config['Selenium']['type']
+LOCATION = config['Selenium']['location']
 
 if __name__ == '__main__':
     print(VIDEO_DIR)
@@ -43,3 +45,5 @@ if __name__ == '__main__':
     print(config_file)
     print(CLIENT_CRED_FILE)
     print(CHROME)
+    print(WEBDRIVER_TYPE)
+    print(LOCATION)
