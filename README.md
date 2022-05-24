@@ -49,6 +49,8 @@ Download afreeca live stream and upload it to Google drive, then send you an ema
 2. enhance observability (monitoring)
 
 ## Run Local (to get authenticated in console)
+### Using standalone-chrome with chromedriver docker image and local python
+Make sure that the `type` is set to `REMOTE` under the `Selenium` config in the `configs/app_config-{env}.ini` file.
 1. Run standalone chrome  
     `docker run -d -p 4444:4444 --shm-size="2g" mojo1821/standalone-chrome:latest`
 2. Add `127.0.0.1 chrome` to `/etc/hosts`
@@ -58,3 +60,20 @@ Download afreeca live stream and upload it to Google drive, then send you an ema
     `pip install -r requirements.txt`
 5. run  
     `python src/main.py`
+
+### Using LOCAL chromedriver and LOCAL chrome and local python
+Make sure that the `type` is set to `LOCAL` under the `Selenium` config in the `configs/app_config-{env}.ini` file.
+Make sure that the `location` is set to a local `chromedriver` absolute path under the `Selenium` config in the `configs/app_config-{env}.ini` file.
+Make sure that the `chrome` is installed on the same machine you run this program.
+1. create venv  
+    `python -m venv shinee-scraper`
+2. resolve dependencies  
+    `pip install -r requirements.txt`
+3. run  
+    `python src/main.py`
+
+
+### Using docker-compose
+Make sure that both `standalone-chrome` and `shinee-scraper` images are built and ready to run.
+Make sure that the necessary directories exist in the binding volume.
+Run docker compose and enjoy.
