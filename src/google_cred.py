@@ -10,8 +10,7 @@ from constants import TOKEN_DIR
 
 import logger_config
 
-SCOPES = ['https://mail.google.com/', 'https://www.googleapis.com/auth/drive',
-          'https://www.googleapis.com/auth/youtube']
+SCOPES = ['https://www.googleapis.com/auth/gmail.send','https://www.googleapis.com/auth/youtube.upload']
 
 
 def get_token_file() -> str:
