@@ -86,3 +86,14 @@ Run docker compose and enjoy.
 `sudo yum install google-chrome-stable_current_x86_64.rpm`
 
 > https://www.lesstif.com/lpt/linux-chrome-106857342.html
+
+### WSL2 ubuntu
+`sudo apt update && sudo apt -y upgrade && sudo apt -y autoremove`
+
+`wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb`
+
+`sudo apt -y install ./google-chrome-stable_current_amd64.deb`
+
+`google-chrome --version`
+
+> https://scottspence.com/posts/use-chrome-in-ubuntu-wsl

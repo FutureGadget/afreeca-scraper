@@ -3,11 +3,12 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 from google_cred import get_cred
-from video_uploader_type import VideoUploaderType
 
 
 def save(title, filepath):
-    cred = get_cred(VideoUploaderType.YOUTUBE)
+    cred = get_cred()
+    if cred is None:
+        return None
     youtube = build('youtube', 'v3', credentials=cred, cache_discovery=False)
     media = MediaFileUpload(filepath, mimetype='video/mpeg', resumable=True)
     media.stream()

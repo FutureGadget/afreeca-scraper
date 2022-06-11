@@ -1,19 +1,14 @@
-from video_uploader_type import VideoUploaderType
-
-import google_drive_api
 import youtube_api
 from constants import VIDEO_DIR
 from fileutils import get_new_videos
 from gmail import broadcast_to_enrolled_users
 from google_cred import get_cred
 
+import logger_config
 
-def get_video_file_uploader(type: VideoUploaderType):
-    get_cred(type)  # initialize token
-    if type is VideoUploaderType.GOOGLE_DRIVE:
-        return GoogleDriveUploader()
-    elif type is VideoUploaderType.YOUTUBE:
-        return YoutubeUploader()
+def get_video_file_uploader():
+    get_cred()  # initialize token
+    return YoutubeUploader()
 
 
 class VideoFileUploader:
@@ -45,25 +40,18 @@ class VideoFileUploader:
         pass
 
 
-class GoogleDriveUploader(VideoFileUploader):
-    def save(self, new_videos: list):
-        filename_and_links = []
-        for filename in new_videos:
-            filename_and_links.append((filename, google_drive_api.save(filename, f'{VIDEO_DIR}/{filename}')))
-        return filename_and_links
-
-
 class YoutubeUploader(VideoFileUploader):
     def save(self, new_videos: list):
         filename_and_links = []
         for filename in new_videos:
-            filename_and_links.append((filename, youtube_api.save(filename, f'{VIDEO_DIR}/{filename}')))
+            saved = youtube_api.save(filename, f'{VIDEO_DIR}/{filename}')
+            if saved is not None:
+                filename_and_links.append((filename, saved))
+            else:
+                logger_config.logger.error('Skipping Youtube upload: ' + filename)
         return filename_and_links
 
 
 if __name__ == '__main__':
-    gdrive_uploader = get_video_file_uploader(VideoUploaderType.GOOGLE_DRIVE)
-    ytube_uploader = get_video_file_uploader(VideoUploaderType.YOUTUBE)
-
-    gdrive_uploader.upload_new_videos([], True)
+    ytube_uploader = get_video_file_uploader()
     ytube_uploader.upload_new_videos([], True)

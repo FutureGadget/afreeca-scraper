@@ -7,22 +7,20 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 
 from constants import CLIENT_CRED_FILE
 from constants import TOKEN_DIR
-from video_uploader_type import VideoUploaderType
+
+import logger_config
 
 SCOPES = ['https://mail.google.com/', 'https://www.googleapis.com/auth/drive',
           'https://www.googleapis.com/auth/youtube']
 
 
-def get_token_file(video_uploader_type: VideoUploaderType) -> str:
-    if video_uploader_type == VideoUploaderType.GOOGLE_DRIVE:
-        return f'{TOKEN_DIR}/googledrive/token.json'
-    elif video_uploader_type == VideoUploaderType.YOUTUBE:
-        return f'{TOKEN_DIR}/youtube/token.json'
+def get_token_file() -> str:
+    return f'{TOKEN_DIR}/token.json'
 
 
-def get_cred(video_uploader_type: VideoUploaderType = VideoUploaderType.YOUTUBE):
+def get_cred():
     cred = None
-    token_file = get_token_file(video_uploader_type)
+    token_file = get_token_file()
     # Get credentials and create an API client
     if os.path.exists(token_file):
         cred = Credentials.from_authorized_user_file(token_file, SCOPES)
@@ -36,11 +34,10 @@ def get_cred(video_uploader_type: VideoUploaderType = VideoUploaderType.YOUTUBE)
             with open(token_file, 'w') as token:
                 token.write(cred.to_json())
     except RefreshError as e:
-        print(e)
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_CRED_FILE, SCOPES)
-        cred = flow.run_console()
-        with open(token_file, 'w') as token:
-            token.write(cred.to_json())
+        logger_config.logger.exception('refresh error')
+        return None
     except Exception as e:
-        print(e)
+        logger_config.logger.exception('unknown error while refreshing')
+        return None
     return cred
+
