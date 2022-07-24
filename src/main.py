@@ -9,6 +9,8 @@ from bj_tracker import ShineeTracker
 from constants import *
 from scraper import scrape
 
+import logger_config
+
 if __name__ == '__main__':
     show_banner()
     print(f'Target BJ URI: {TARGET_BJ}')
