@@ -31,6 +31,8 @@ if __name__ == '__main__':
             print("Shutdown requested...existing.")
             print('===============================')
             break
+        except Exception as e:
+            logger_config.logger.error("Ignoring Unknown Error")
         finally:
             youtube_uploader.upload_new_videos(existingVideos, SAVE_ON_DRIVE_AND_NOTIFY)
             # gdrive_uploader.upload_new_videos(existingVideos, SAVE_ON_DRIVE_AND_NOTIFY)
