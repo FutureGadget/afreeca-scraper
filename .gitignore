@@ -1,11 +1,11 @@
 videos/
 token/
 secrets/
+logs/
 chromedriver
 chromedriver.exe
 src/__pycache__
 __pycache__
-logs/
 venv/
 
 ## Pycharm
@@ -15,3 +15,4 @@ modules.xml
 profiles_settings.xml
 vcs.xml
 .idea/
+shinee-scraper/

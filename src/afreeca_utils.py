@@ -1,42 +1,25 @@
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium import webdriver
-from urllib.parse import urljoin
-from urllib.parse import urlparse
 from errors import NotOnAirException
+import logger_config
 
-from constants import *
+PLAYER_BOX_XPATH = '//*[@id="bs-navi"]/div/article[2]/div/a'
+WAIT_SEC = 3
 
-
-def get_player(driver, broadcastUrl):
+def get_player(driver, bjHomeUrl):
     try:
-        driver.get(broadcastUrl)
-        playButton = driver.find_element_by_xpath('//*[@id="bs-navi"]/div/article[1]/div[1]/a/span/img')
-        WebDriverWait(driver, 3).until(
-            EC.element_to_be_clickable((By.XPATH, '//*[@id="bs-navi"]/div/article[1]/div[1]/a/span/img')))
-        thumbnailUrl = playButton.get_attribute('src')  # returns None if not present. (e.g. Not on air.)
-        o = urlparse(thumbnailUrl)
-        webPlayerUrl = urljoin(urljoin(PLAYER_ROOT_URL, urlparse(broadcastUrl).path) + '/',
-                               o.path.split('/')[2].split('.')[0])
-        print(f'live thumbnail: {o.path}')
-        print(f'live web player url: {webPlayerUrl}')
+        driver.get(bjHomeUrl)
+        wait = WebDriverWait(driver, WAIT_SEC)
+        current_window = driver.current_window_handle
 
-        driver.get(webPlayerUrl)
+
+        wait.until(EC.element_to_be_clickable((By.XPATH, PLAYER_BOX_XPATH))).click()
+        wait.until(EC.new_window_is_opened)
+
+        new_window = set(driver.window_handles) - set([current_window])
+        driver.switch_to.window(new_window.pop())
         return driver
-    except Exception as e:
-        print(f'exception while getting afreeca player url for {broadcastUrl}, {e}')
+    except Exception:
+        logger_config.logger.error('exception while getting afreeca player url for %s', bjHomeUrl, exc_info = 1)
         raise NotOnAirException()
-
-
-if __name__ == '__main__':
-    # broadcastUrl = SHINEE
-    broadcastUrl = JIHO
-    options = webdriver.ChromeOptions()
-    # options.add_argument('headless')
-    # options.add_argument("disable-gpu")
-
-    driver = webdriver.Chrome()
-
-    driver = get_player(driver, JIHO)
-    print(driver.current_url)

@@ -9,6 +9,12 @@
                                                       |_|              v1.0 by Danwoo Park
 ```
 
+## Warning
+https://developers.google.com/identity/protocols/oauth2/resources/oob-migration
+Google has stopped providing out-of-band OAuth2.0 flow.
+You have to add a public endpoint to get a redirection with code, which can be used to exchange with actual access token.
+(Or you can use other client's that supports OAuth2 authorization flow such as Postman and copy & paste access token from it.)
+
 ## Summary
 ShineeScraper is an Afreeca TV live stream downloader.
 Download afreeca live stream and upload it to Google drive, then send you an email so that you can watch it later anytime you want.

@@ -16,11 +16,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import TimeoutException
 from urllib3.util.retry import Retry
 
 import logger_config
 from afreeca_utils import get_player
-from bj_tracker import ShineeTracker
 from constants import *
 from errors import NotOnAirException
 from fileutils import get_legal_filename_string
@@ -51,8 +51,8 @@ def create_live_cookie_string(cookie):
 
 
 def scrape(bj_home_uri):
-    driver = get_driver(WEBDRIVER_TYPE)
     try:
+        driver = get_driver(WEBDRIVER_TYPE)
         print('=====================START====================')
         print('Start recording when the broadcasting is onair.')
         print('===============================================')
@@ -89,7 +89,7 @@ def get_driver(driver_type) -> WebDriver:
     if driver_type == 'REMOTE':
         return webdriver.Remote(command_executor=CHROME, desired_capabilities=caps, options=options)  # connect remote webdriver to docker standalone chrome
     else:
-        options.binary_location = '/usr/bin/google-chrome' # you have to install google-chrome binary
+        # options.binary_location = '/usr/bin/google-chrome' # you have to install google-chrome binary
         return webdriver.Chrome(LOCATION, desired_capabilities=caps, options=options)
 
 
@@ -103,22 +103,23 @@ def do_scrape(driver: WebDriver, bj_home_uri: str):
     print("*******HEADERS*******")
     print(headers)
     print("*********************")
+    print(driver.current_url)
 
     broadcast_title = WebDriverWait(driver, 10).until(
         EC.visibility_of_element_located((By.XPATH, '//*[@id="player_area"]/div[2]/div[2]/div[4]/span'))).text
     filename_friendly_broadcast_title = get_legal_filename_string(broadcast_title)
 
     filename = f"{VIDEO_DIR}/{filename_friendly_broadcast_title}-{generate_id(6)}.mpeg"
-    logger_config.stream_logger.info(f'Save file name: {filename}')
-
-    # Must click play button to start streaming.
-    play = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="stop_screen"]/dl/dd[2]/a')))
-    play.click()
+    logger_config.stream_logger.info('Save file name: %s', filename)
 
     # Close the program install recommendation window.
-    skip_to_low_quality_video = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.XPATH, '//*[@id="layer_high_quality"]/div/span/a')))
-    skip_to_low_quality_video.click()
+    try:
+        skip_to_low_quality_video = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, '//*[@id="layer_high_quality"]/div/span/a')))
+        skip_to_low_quality_video.click()
+    except TimeoutException:
+        pass
+    
     scrape_with_retry(driver, filename, headers)
 
 
@@ -173,7 +174,6 @@ def download_by_m3u8(driver: WebDriver, filename: str, headers, timer: Timer):
 
             if m3u8Url:
                 print(f'Request m3u8 url detected: {m3u8Url}')
-                ShineeTracker.broadcast_started()
                 do_download(m3u8Url, filename, headers, executor)
 
         except Exception as e:
