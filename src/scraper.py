@@ -57,16 +57,16 @@ def scrape(bj_home_uri):
         print('Start recording when the broadcasting is onair.')
         print('===============================================')
         do_scrape(driver, bj_home_uri)
-    except NotOnAirException as e:
+    except NotOnAirException:
         print('!-------------------------------NOT ON AIR------------------------------!')
         print(" Start from the first since the broadcasting does not seem to be on air.")
         print('!-----------------------------------------------------------------------!')
-    except Exception as e:
+    except Exception as exe:
         logger_config.logger.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         logger_config.logger.error('Exception while scraping...')
         logger_config.logger.error(traceback.format_exc())
         logger_config.logger.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        raise e
+        raise exe
     finally:
         driver.quit()
 
@@ -131,12 +131,12 @@ def scrape_with_retry(driver: WebDriver, filename: str, headers):
         try:
             download_by_m3u8(driver, filename, headers, timer)
             print('Retrying...')
-        except NotOnAirException as e:
-            raise e
-        except KeyboardInterrupt as e:
+        except NotOnAirException as exe:
+            raise exe
+        except KeyboardInterrupt as exe:
             print('Aborting by user request..')
-            raise e
-        except Exception as e:
+            raise exe
+        except Exception as exe:
             print('Exception while downloading...')
             print(traceback.format_exc())
         finally:
@@ -151,7 +151,7 @@ def close_driver(driver):
 def download_by_m3u8(driver: WebDriver, filename: str, headers, timer: Timer):
     with cf.ThreadPoolExecutor(max_workers=5) as executor:
         finished = False
-        m3u8Url = None
+        m3u8_url = None
         try:
             while not finished:
                 browser_log = driver.get_log('performance')
@@ -162,21 +162,21 @@ def download_by_m3u8(driver: WebDriver, filename: str, headers, timer: Timer):
                 if (len(requests)) == 0 and timer.is_over_due():
                     return
 
-                for e in requests:
-                    m3u8Req = find_m3u8_request(e)
-                    if m3u8Req:
+                for elem in requests:
+                    m3u8_req = find_m3u8_request(elem)
+                    if m3u8_req:
                         timer.reset()
-                        m3u8Url = m3u8Req['request']['url']
+                        m3u8_url = m3u8_req['request']['url']
                         finished = True
                         break
 
             executor.submit(close_driver, driver)
 
-            if m3u8Url:
-                print(f'Request m3u8 url detected: {m3u8Url}')
-                do_download(m3u8Url, filename, headers, executor)
+            if m3u8_url:
+                print(f'Request m3u8 url detected: {m3u8_url}')
+                do_download(m3u8_url, filename, headers, executor)
 
-        except Exception as e:
+        except Exception as exe:
             logger_config.logger.error('ERROR: Download by m3u8 exception: ')
             logger_config.logger.error(traceback.format_exc())
 
@@ -204,7 +204,7 @@ def enqueue_ts_urls(m3u8_url, headers, _rq, q):
             else:
                 logger_config.logger.error(
                     f"Received unexpected status code when requesting m3u8: {res.status_code, res.json}")
-        except Exception as e:
+        except Exception:
             print('Error: Failed to get m3u8.')
             print(traceback.format_exc())
             raise NotOnAirException()
@@ -227,16 +227,16 @@ def do_download(m3u8_url: str, filename: str, headers, executor: cf.ThreadPoolEx
     try:
         while not all([future.done() for future in futures]):
             time.sleep(1)
-    except KeyboardInterrupt as e:
+    except KeyboardInterrupt as exe:
         global g_quit
         g_quit = True
-        raise e
+        raise exe
 
     for future in cf.as_completed(futures):
-        e = future.exception()
-        if e:
-            logger_config.logger.error(repr(e))
-            raise e
+        exe = future.exception()
+        if exe:
+            logger_config.logger.error(repr(exe))
+            raise exe
 
 
 def download_segments(filename: str, q: queue.Queue, _rq, headers):
@@ -254,7 +254,7 @@ def download_segments(filename: str, q: queue.Queue, _rq, headers):
                     logger_config.logger.error(
                         f"Received unexpected status code: {r1.status_code, r1.json} for segment: {url}")
                 time.sleep(duration - SEGMENT_DURATION_BUFFER)
-            except Exception as e:
+            except Exception as exe:
                 logger_config.logger.error('ERROR: Downloading segments from m3u8 playlist')
                 logger_config.logger.error(traceback.format_exc())
 
@@ -268,7 +268,7 @@ def download_segments(filename: str, q: queue.Queue, _rq, headers):
                     pass
                 else:
                     logger_config.logger.info('Stop downloading segments since the streaming has been stopped.')
-                    raise NotOnAirException()
+                    raise NotOnAirException() from exe
             finally:
                 q.task_done()
 

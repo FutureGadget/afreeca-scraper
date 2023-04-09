@@ -1,3 +1,7 @@
+"""
+This module provides an api to upload video 
+on the authenticated user's youtube channel
+"""
 from googleapiclient import errors
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -40,7 +44,6 @@ def save(title, filepath):
         print(f"File ID: {response.get('id')}")
         file_link = get_file_link(response.get('id'))
         print(file_link)
-        # broadcast_to_enrolled_users('샤순신 강의배달!', f'링크: {fileLink}')
 
         return file_link
     except errors.HttpError as error:
