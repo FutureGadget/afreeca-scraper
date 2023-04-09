@@ -84,7 +84,7 @@ Make sure that both `standalone-chrome` and `shinee-scraper` images are built an
 Make sure that the necessary directories exist in the binding volume.
 Run docker compose and enjoy.
 
-### Using nohup on Linux server
+### Using nohup on Linux server (Not containerized app)
 `ENV='prod' nohup python3 /home/ec2-user/afreeca-scraper/src/main.py > /dev/null 2>&1 &`
 
 # Appedix
