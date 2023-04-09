@@ -145,7 +145,7 @@ def scrape_with_retry(driver: WebDriver, filename: str, headers):
 
 
 def close_driver(driver):
-    driver.close()
+    driver.quit()
 
 
 def download_by_m3u8(driver: WebDriver, filename: str, headers, timer: Timer):
