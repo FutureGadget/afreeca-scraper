@@ -1,23 +1,33 @@
-import pytz
+"""
+This module helps detect if the BJ was not on air.
+"""
+
 from datetime import datetime, timezone
+import pytz
 import gmail
 
 KST = pytz.timezone("Asia/Seoul")
 
 
 def get_now_as_kst():
+    """
+    Get current datetime as KST timezone.
+    """
     utc_dt = datetime.now(timezone.utc)
     return utc_dt.astimezone(tz=KST)
 
 
-def is_same_date_in_kst(dt: datetime):
-    if not dt:
+def is_same_date_in_kst(new_datetime: datetime):
+    """
+    Check if the new_datetime is the same as current datetime.
+    """
+    if not new_datetime:
         return False
     else:
         now = get_now_as_kst()
-        return now.year == dt.year and \
-               now.month == dt.month and \
-               now.day == dt.day
+        return now.year == new_datetime.year and \
+               now.month == new_datetime.month and \
+               now.day == new_datetime.day
 
 
 class ShineeTracker:

@@ -1,3 +1,7 @@
+"""
+This module defines utils for afreeca player
+"""
+
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -7,19 +11,26 @@ import logger_config
 PLAYER_BOX_XPATH = '//*[@id="bs-navi"]/div/article[2]/div/a'
 WAIT_SEC = 3
 
-def get_player(driver, bjHomeUrl):
+def get_player(driver, bj_home_url):
+    """
+    Go to the bjHomeUrl and click the anchor element to go to the actual broadcast link.
+    Raises exception when the BJ is not on air.
+    """
     try:
-        driver.get(bjHomeUrl)
+        driver.get(bj_home_url)
         wait = WebDriverWait(driver, WAIT_SEC)
         current_window = driver.current_window_handle
 
 
         wait.until(EC.element_to_be_clickable((By.XPATH, PLAYER_BOX_XPATH))).click()
-        wait.until(EC.new_window_is_opened)
 
+        # Wait until the broadcast window is opened and switch to the new window.
+        wait.until(EC.new_window_is_opened)
         new_window = set(driver.window_handles) - set([current_window])
         driver.switch_to.window(new_window.pop())
+
         return driver
-    except Exception:
-        logger_config.logger.error('exception while getting afreeca player url for %s', bjHomeUrl, exc_info = 1)
-        raise NotOnAirException()
+    except Exception as exc:
+        logger_config.logger.error(
+            'exception while getting afreeca player url for %s', bj_home_url, exc_info = 1)
+        raise NotOnAirException() from exc

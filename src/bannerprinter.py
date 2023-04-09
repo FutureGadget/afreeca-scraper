@@ -1,12 +1,18 @@
+"""
+This module contains banner printer related functions.
+"""
 from constants import BANNER_FILE
 
 
 def show_banner():
-    with open(BANNER_FILE) as f:
-        line = f.readline()
+    """
+    This function prints banner defined in the BANNER_FILE
+    """
+    with open(BANNER_FILE, 'r', encoding='utf-8') as file:
+        line = file.readline()
         while line:
             print(line)
-            line = f.readline()
+            line = file.readline()
 
 
 if __name__ == '__main__':

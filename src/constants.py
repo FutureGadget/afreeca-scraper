@@ -1,3 +1,7 @@
+"""
+This module is to define constants
+"""
+
 from pathlib import Path
 import configparser
 import os
@@ -23,7 +27,7 @@ config = configparser.ConfigParser()
 CONFIG_FILE_NAME_PREFIX = 'app_config'
 CONFIG_FILE_EXTENSION = '.ini'
 ENVIRONMENT = os.environ.get('ENV', DEVELOP)
-config_file = (CONFIG_FILE_PATH / f"{CONFIG_FILE_NAME_PREFIX}-{ENVIRONMENT}{CONFIG_FILE_EXTENSION}")
+config_file = CONFIG_FILE_PATH / f"{CONFIG_FILE_NAME_PREFIX}-{ENVIRONMENT}{CONFIG_FILE_EXTENSION}"
 config.read(config_file)
 
 TARGET_BJ = config['Recording']['target_bj_home_uri']
