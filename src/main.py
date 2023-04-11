@@ -20,6 +20,7 @@ if __name__ == '__main__':
     youtube_uploader = get_video_file_uploader()
 
     while True:
+        video_file_cleaner.clean_old_videos(hours_after_modification=8)
         existingVideos = fileutils.get_files_in_dir(VIDEO_DIR)
         print(f"Existing videos: {','.join(existingVideos)}")
 
