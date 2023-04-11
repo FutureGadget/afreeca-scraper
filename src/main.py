@@ -20,7 +20,6 @@ if __name__ == '__main__':
     youtube_uploader = get_video_file_uploader()
 
     while True:
-        video_file_cleaner.clean_old_videos(hours_after_modification=3) # TODO: always remove uploaded file
         existingVideos = fileutils.get_files_in_dir(VIDEO_DIR)
         print(f"Existing videos: {','.join(existingVideos)}")
 
@@ -36,6 +35,7 @@ if __name__ == '__main__':
         finally:
             youtube_uploader.upload_new_videos(existingVideos, SAVE_ON_DRIVE_AND_NOTIFY)
             shinee_tracker.send_email_if_had_no_live_today()
+            video_file_cleaner.clean_old_videos(hours_after_modification=0)
             # gdrive_uploader.upload_new_videos(existingVideos, SAVE_ON_DRIVE_AND_NOTIFY)
         time.sleep(60)
 
