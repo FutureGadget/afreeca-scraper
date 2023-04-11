@@ -35,7 +35,7 @@ if __name__ == '__main__':
         finally:
             youtube_uploader.upload_new_videos(existingVideos, SAVE_ON_DRIVE_AND_NOTIFY)
             shinee_tracker.send_email_if_had_no_live_today()
-            video_file_cleaner.clean_old_videos(hours_after_modification=0)
+            # video_file_cleaner.clean_old_videos(hours_after_modification=0) # TODO: remove only when upload was successful
             # gdrive_uploader.upload_new_videos(existingVideos, SAVE_ON_DRIVE_AND_NOTIFY)
         time.sleep(60)
 
