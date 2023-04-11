@@ -6,6 +6,7 @@ import json
 from flask import Flask, redirect, url_for
 from flask_dance.contrib.google import make_google_blueprint, google
 from flask_dance.consumer import oauth_authorized
+from oauthlib.oauth2.rfc6749.errors import TokenExpiredError, InvalidClientIdError
 from constants import TOKEN_DIR, CLIENT_CRED_FILE
 from google_cred import SCOPES
 
@@ -36,10 +37,12 @@ def index():
     """
     if not google.authorized:
         return redirect(url_for("google.login"))
-    resp = google.get("/oauth2/v1/userinfo")
-    if resp.ok:
-        return f"Hello, {resp.json()}!"
-    return "Could not fetch your information."
+    try:
+        resp = google.get("/oauth2/v1/userinfo")
+        if resp.ok:
+            return f"Hello, {resp.json()}!"
+    except (TokenExpiredError, InvalidClientIdError):
+        return redirect(url_for("google.login"))
 
 def save_token_to_file(sender, token):
     """

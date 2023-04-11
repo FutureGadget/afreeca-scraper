@@ -18,9 +18,9 @@ def get_file_paths_in_dir(dir_path: str):
     return [os.path.join(dir_path, f) for f in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path, f))]
 
 
-def get_old_files(dir_path: str, days_after_modification: int):
+def get_old_files(dir_path: str, hours_after_modification: int):
     return [f for f in get_file_paths_in_dir(dir_path) if
-            int((time.time() - os.path.getmtime(f)) / (60 * 60 * 24)) >= days_after_modification]
+            int((time.time() - os.path.getmtime(f)) / (60 * 60)) >= hours_after_modification]
 
 
 def get_new_videos(existing_videos):
