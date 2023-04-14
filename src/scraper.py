@@ -35,8 +35,8 @@ RETRY_COUNT_THRESHOLD = 5
 # Should sleep with buffer to keep pace with streaming server (where network request latencey exists)
 SEGMENT_DURATION_BUFFER = 0.1
 
-global g_quit
-g_quit = False
+global G_QUIT
+G_QUIT = False
 
 
 def get_headers(cookies, uri):
@@ -186,60 +186,70 @@ def download_by_m3u8(driver: WebDriver, filename: str, headers, timer: Timer):
                 print(f'Request m3u8 url detected: {m3u8_url}')
                 do_download(m3u8_url, filename, headers, executor)
 
-        except Exception as exe:
+        except Exception:
             logger_config.logger.error('ERROR: Download by m3u8 exception: ')
             logger_config.logger.error(traceback.format_exc())
 
 
-def enqueue_ts_urls(m3u8_url, headers, _rq, q):
+def enqueue_ts_urls(m3u8_url, headers, _rq, stream_queue):
+    """
+    Enqueue segment urls downloaded from playlist(m3u8) url to stream_queue while g_quit is false.
+    The queue will be consumed and stream segments will be saved to a file.
+    """
     uri_set_windowed = OrderedSet(window=1000)
-    while not g_quit:
+    while not G_QUIT:
         sleep_time = 0
         try:
             res = _rq.get(m3u8_url, headers=headers, timeout=2)
             if res.status_code == 200:
                 playlist = m3u8.loads(res.text)
                 root_uri = get_m3u8_root_uri(m3u8_url)
-                for s in playlist.segments:
-                    if s.uri in uri_set_windowed:
-                        print(f'Duplicate URI: {s.uri}')
+                for seg in playlist.segments:
+                    if seg.uri in uri_set_windowed:
+                        print(f'Duplicate URI: {seg.uri}')
                     else:
-                        uri_set_windowed.add(s.uri)
-                        url = urljoin(root_uri, s.uri)
-                        q.put((url, s.duration))
-                        print(f'Put segment: url-{url}, duration-{s.duration} => OK')
-                    sleep_time = sleep_time + s.duration - SEGMENT_DURATION_BUFFER
+                        uri_set_windowed.add(seg.uri)
+                        url = urljoin(root_uri, seg.uri)
+                        stream_queue.put((url, seg.duration))
+                        print(f'Put segment: url-{url}, duration-{seg.duration} => OK')
+                    sleep_time = sleep_time + seg.duration - SEGMENT_DURATION_BUFFER
                 print(f"m3u8 worker: Sleep {sleep_time} seconds.")
                 time.sleep(sleep_time)
             else:
                 logger_config.logger.error(
-                    f"Received unexpected status code when requesting m3u8: {res.status_code, res.json}")
-        except Exception:
+                    "Received unexpected status code when requesting m3u8: {%s, %s}", 
+                    res.status_code, res.json())
+        except Exception as exc:
             print('Error: Failed to get m3u8.')
             print(traceback.format_exc())
-            raise NotOnAirException()
+            raise NotOnAirException() from exc
 
 
 def do_download(m3u8_url: str, filename: str, headers, executor: cf.ThreadPoolExecutor):
-    s = rq.Session()
+    """
+    Start 2 tasks.
+    1. Enqueue segment(ts) urls from playlist url.
+    2. Dequeue segment(ts) urls and download it.
+    """
+    session = rq.Session()
     retries = Retry(total=5,
                     backoff_factor=0.1,
                     status_forcelist=[500, 502, 503, 504])
-    s.mount('https://', HTTPAdapter(max_retries=retries))
-    q = queue.Queue()
+    session.mount('https://', HTTPAdapter(max_retries=retries))
+    stream_queue = queue.Queue()
 
-    futures = [executor.submit(enqueue_ts_urls, m3u8_url, headers, s, q),
-               executor.submit(download_segments, filename, q, s, headers)]
+    futures = [executor.submit(enqueue_ts_urls, m3u8_url, headers, session, stream_queue),
+               executor.submit(download_segments, filename, stream_queue, session, headers)]
 
     # Keep looping to handle KeyboardInterrupt signal (SIGINT)
     # http://www.luke.maurits.id.au/blog/post/threads-and-signals-in-python.html
     # https://stackoverflow.com/questions/29177490/how-do-you-kill-futures-once-they-have-started
     try:
-        while not all([future.done() for future in futures]):
+        while not all(future.done() for future in futures):
             time.sleep(1)
     except KeyboardInterrupt as exe:
-        global g_quit
-        g_quit = True
+        global G_QUIT
+        G_QUIT = True
         raise exe
 
     for future in cf.as_completed(futures):
@@ -249,38 +259,42 @@ def do_download(m3u8_url: str, filename: str, headers, executor: cf.ThreadPoolEx
             raise exe
 
 
-def download_segments(filename: str, q: queue.Queue, _rq, headers):
+def download_segments(filename: str, stream_queue: queue.Queue, _rq, headers):
+    """
+    Consume the streaming segments queue and download it while G_QUIT is false.
+    """
     with open(filename, 'ab') as file:
-        while not g_quit:
+        while not G_QUIT:
             try:
-                (url, duration) = q.get(timeout=30)
-                r1 = _rq.get(url, stream=True, headers=headers, timeout=2)
-                if r1.status_code == 200:
-                    logger_config.stream_logger.debug(f'{url} => OK')
-                    for chunk in r1.iter_content(chunk_size=1024):
+                (url, duration) = stream_queue.get(timeout=30)
+                response = _rq.get(url, stream=True, headers=headers, timeout=2)
+                if response.status_code == 200:
+                    logger_config.stream_logger.debug('{%s} => OK', url)
+                    for chunk in response.iter_content(chunk_size=1024):
                         file.write(chunk)
                     print(f'DOWNLOAD: {url} => OK')
                 else:
                     logger_config.logger.error(
-                        f"Received unexpected status code: {r1.status_code, r1.json} for segment: {url}")
+                        "Received unexpected status code: {%s, %s} for segment: {%s}", 
+                        response.status_code, response.json, url)
                 time.sleep(duration - SEGMENT_DURATION_BUFFER)
             except Exception as exe:
                 logger_config.logger.error('ERROR: Downloading segments from m3u8 playlist')
                 logger_config.logger.error(traceback.format_exc())
 
-                if not q.empty():
-                    logger_config.logger.info('Try recover from error since the streaming queue is not empty.')
+                if not stream_queue.empty():
+                    logger_config.logger.info(
+                        'Try recover from error since the streaming queue is not empty.')
                     # Flush all delayed segments.
-                    while not q.empty():
-                        #
-                        uri = q.get(block=False)
-                        logger_config.logger.info(f'Flushing delayed uris: {uri}')
-                    pass
+                    while not stream_queue.empty():
+                        uri = stream_queue.get(block=False)
+                        logger_config.logger.info('Flushing delayed uris: {%s}', uri)
                 else:
-                    logger_config.logger.info('Stop downloading segments since the streaming has been stopped.')
+                    logger_config.logger.info(
+                        'Stop downloading segments since the streaming has been stopped.')
                     raise NotOnAirException() from exe
             finally:
-                q.task_done()
+                stream_queue.task_done()
 
 
 def get_m3u8_root_uri(m3u8_url):
