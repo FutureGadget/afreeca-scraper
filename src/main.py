@@ -25,7 +25,7 @@ if __name__ == '__main__':
         print(f"Existing videos: {','.join(existingVideos)}")
 
         try:
-            scrape(TARGET_BJ)
+            scrape(TARGET_BJ, shinee_tracker)
         except KeyboardInterrupt as exe:
             print('=======SHUTDOWN REQUESTED======')
             print("Shutdown requested...existing.")

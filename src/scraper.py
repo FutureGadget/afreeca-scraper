@@ -27,6 +27,7 @@ from fileutils import get_legal_filename_string
 from id_generator import generate_id
 from ordered_set import OrderedSet
 from timer import Timer
+from bj_tracker import ShineeTracker
 
 HEADLESS = True
 LIVE_STREAMING_LAG_THRESHOLD_SEC = 10
@@ -50,13 +51,16 @@ def create_live_cookie_string(cookie):
     return '; '.join(list(map(lambda c: str(c['name']) + '=' + str(c['value']), cookie)))
 
 
-def scrape(bj_home_uri):
+def scrape(bj_home_uri, shinee_tracker):
+    """
+    Scrape if the broadcast started
+    """
     try:
         driver = get_driver(WEBDRIVER_TYPE)
         print('=====================START====================')
         print('Start recording when the broadcasting is onair.')
         print('===============================================')
-        do_scrape(driver, bj_home_uri)
+        do_scrape(driver, bj_home_uri, shinee_tracker)
     except NotOnAirException:
         print('!-------------------------------NOT ON AIR------------------------------!')
         print(" Start from the first since the broadcasting does not seem to be on air.")
@@ -93,8 +97,14 @@ def get_driver(driver_type) -> WebDriver:
         return webdriver.Chrome(LOCATION, desired_capabilities=caps, options=options)
 
 
-def do_scrape(driver: WebDriver, bj_home_uri: str):
+def do_scrape(driver: WebDriver, bj_home_uri: str, shinee_tracker: ShineeTracker):
+    """
+    Scrape and save the stream to the local filesystem while on-air
+    """
     driver = get_player(driver, bj_home_uri)
+
+    shinee_tracker.broadcast_started()
+
     cookies = driver.get_cookies()
     print("*******COOKIES*******")
     print(cookies)
