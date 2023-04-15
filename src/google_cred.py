@@ -1,6 +1,7 @@
 """
 Google credential management
 """
+import asyncio
 import json
 from datetime import datetime, timedelta
 import pytz
@@ -55,7 +56,7 @@ def get_authorized_user_info() -> dict:
             }
 
 
-def get_cred() -> Credentials:
+async def get_cred() -> Credentials:
     """
     Get Google Credentials from token file
     """
@@ -63,10 +64,8 @@ def get_cred() -> Credentials:
         with open(get_token_file(), 'r', encoding='utf-8') as token_file:
             token_data = json.load(token_file)
             credentials = Credentials.from_authorized_user_info(info=get_authorized_user_info())
-            print('before', credentials.expiry.replace(tzinfo=pytz.UTC).isoformat())
-            print('now', datetime.utcnow().isoformat())
             if credentials.expired:
-                credentials.refresh(Request())
+                await asyncio.to_thread(credentials.refresh, Request())
                 token_data['access_token'] = credentials.token
                 token_data['expires_in'] = (credentials.expiry - datetime.utcnow()).total_seconds()
                 token_data['expires_at'] = credentials.expiry.replace(tzinfo=pytz.UTC).timestamp()
@@ -77,6 +76,7 @@ def get_cred() -> Credentials:
         logger_config.logger.error("error while get cred %s", ex, stack_info = True)
 
 if __name__ == '__main__':
-    cred = get_cred()
-    print('expiry', cred.expiry.replace(tzinfo=pytz.UTC).isoformat())
-    print('expiry', (cred.expiry.replace(tzinfo=pytz.UTC)).timestamp())
+    pass
+    # cred = get_cred() TODO: run it asynchronously
+    # print('expiry', cred.expiry.replace(tzinfo=pytz.UTC).isoformat())
+    # print('expiry', (cred.expiry.replace(tzinfo=pytz.UTC)).timestamp())

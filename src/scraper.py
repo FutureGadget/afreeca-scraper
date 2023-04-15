@@ -1,14 +1,11 @@
-import concurrent.futures as cf
+import aiohttp
+import asyncio
 import json
-import queue
-import time
 import traceback
 from urllib.parse import urljoin
 from urllib.parse import urlsplit
 
 import m3u8
-import requests as rq
-from requests.adapters import HTTPAdapter
 from selenium import webdriver
 from selenium.webdriver import ActionChains
 from selenium.webdriver.chrome.webdriver import WebDriver
@@ -28,6 +25,7 @@ from id_generator import generate_id
 from ordered_set import OrderedSet
 from timer import Timer
 from bj_tracker import ShineeTracker
+from video_file_uploader import VideoFileUploader
 
 HEADLESS = True
 LIVE_STREAMING_LAG_THRESHOLD_SEC = 10
@@ -51,7 +49,7 @@ def create_live_cookie_string(cookie):
     return '; '.join(list(map(lambda c: str(c['name']) + '=' + str(c['value']), cookie)))
 
 
-def scrape(bj_home_uri, shinee_tracker):
+async def scrape(bj_home_uri, shinee_tracker, youtube_uploader):
     """
     Scrape if the broadcast started
     """
@@ -60,7 +58,7 @@ def scrape(bj_home_uri, shinee_tracker):
         print('=====================START====================')
         print('Start recording when the broadcasting is onair.')
         print('===============================================')
-        do_scrape(driver, bj_home_uri, shinee_tracker)
+        await do_scrape(driver, bj_home_uri, shinee_tracker, youtube_uploader)
     except NotOnAirException:
         print('!-------------------------------NOT ON AIR------------------------------!')
         print(" Start from the first since the broadcasting does not seem to be on air.")
@@ -97,12 +95,17 @@ def get_driver(driver_type) -> WebDriver:
         return webdriver.Chrome(LOCATION, desired_capabilities=caps, options=options)
 
 
-def do_scrape(driver: WebDriver, bj_home_uri: str, shinee_tracker: ShineeTracker):
+async def do_scrape(
+        driver: WebDriver,
+        bj_home_uri: str,
+        shinee_tracker: ShineeTracker, 
+        youtube_uploader: VideoFileUploader):
     """
     Scrape and save the stream to the local filesystem while on-air
     """
     driver = get_player(driver, bj_home_uri)
 
+    # Set the tracker
     shinee_tracker.broadcast_started()
 
     cookies = driver.get_cookies()
@@ -113,12 +116,16 @@ def do_scrape(driver: WebDriver, bj_home_uri: str, shinee_tracker: ShineeTracker
     print("*******HEADERS*******")
     print(headers)
     print("*********************")
+    print("****BROADCAST URL****")
     print(driver.current_url)
+    print("*********************")
 
+    # Get the title of the show from the afreeca web player window
     broadcast_title = WebDriverWait(driver, 10).until(
         EC.visibility_of_element_located((By.XPATH, '//*[@id="player_area"]/div[2]/div[2]/div[4]/span'))).text
+    
+    # Get the filename to be saved from the title
     filename_friendly_broadcast_title = get_legal_filename_string(broadcast_title)
-
     filename = f"{VIDEO_DIR}/{filename_friendly_broadcast_title}-{generate_id(6)}.mpeg"
     logger_config.stream_logger.info('Save file name: %s', filename)
 
@@ -129,69 +136,64 @@ def do_scrape(driver: WebDriver, bj_home_uri: str, shinee_tracker: ShineeTracker
         skip_to_low_quality_video.click()
     except TimeoutException:
         pass
-    
-    scrape_with_retry(driver, filename, headers)
-
-
-def scrape_with_retry(driver: WebDriver, filename: str, headers):
-    retrycnt = 0
+ 
     timer = Timer.threshold(LIVE_STREAMING_LAG_THRESHOLD_SEC)
     timer.start()
+    m3u8_url = download_by_m3u8(driver, filename, headers, timer, youtube_uploader)
+    await scrape_with_retry(m3u8_url, filename, headers, youtube_uploader)
+
+
+async def scrape_with_retry(m3u8_url: str, filename: str, headers: dict, youtube_uploader: VideoFileUploader):
+    retrycnt = 0
     while retrycnt < RETRY_COUNT_THRESHOLD:
         try:
-            download_by_m3u8(driver, filename, headers, timer)
-            print('Retrying...')
-        except NotOnAirException as exe:
-            raise exe
-        except KeyboardInterrupt as exe:
+            if m3u8_url:
+                print(f'Request m3u8 url detected: {m3u8_url}')
+                await do_download(m3u8_url, filename, headers, youtube_uploader)
+            else:
+                print('Retrying...')
+        except NotOnAirException as exc:
+            raise exc
+        except KeyboardInterrupt as exc:
             print('Aborting by user request..')
-            raise exe
-        except Exception as exe:
+            raise exc
+        except Exception:
             print('Exception while downloading...')
             print(traceback.format_exc())
         finally:
-            timer.increase_threshold_and_reset()
             retrycnt += 1
 
+def download_by_m3u8(driver: WebDriver, filename: str, headers, timer: Timer, youtube_uploader: VideoFileUploader):
+    finished = False
+    m3u8_url = None
+    try:
+        while not finished:
+            browser_log = driver.get_log('performance')
+            events = [process_browser_log_entry(entry) for entry in browser_log]
 
-def close_driver(driver):
-    driver.quit()
+            requests = [event for event in events if 'Network.request' in event['method']]
 
+            if (len(requests)) == 0 and timer.is_over_due():
+                return None
 
-def download_by_m3u8(driver: WebDriver, filename: str, headers, timer: Timer):
-    with cf.ThreadPoolExecutor(max_workers=5) as executor:
-        finished = False
-        m3u8_url = None
-        try:
-            while not finished:
-                browser_log = driver.get_log('performance')
-                events = [process_browser_log_entry(entry) for entry in browser_log]
+            for elem in requests:
+                m3u8_req = find_m3u8_request(elem)
+                if m3u8_req:
+                    timer.reset()
+                    m3u8_url = m3u8_req['request']['url']
+                    finished = True
+                    break
 
-                requests = [event for event in events if 'Network.request' in event['method']]
-
-                if (len(requests)) == 0 and timer.is_over_due():
-                    return
-
-                for elem in requests:
-                    m3u8_req = find_m3u8_request(elem)
-                    if m3u8_req:
-                        timer.reset()
-                        m3u8_url = m3u8_req['request']['url']
-                        finished = True
-                        break
-
-            executor.submit(close_driver, driver)
-
-            if m3u8_url:
-                print(f'Request m3u8 url detected: {m3u8_url}')
-                do_download(m3u8_url, filename, headers, executor)
-
-        except Exception:
-            logger_config.logger.error('ERROR: Download by m3u8 exception: ')
-            logger_config.logger.error(traceback.format_exc())
+        driver.quit()
+        return m3u8_url
+    except Exception:
+        logger_config.logger.error('ERROR: Download by m3u8 exception: ')
+        logger_config.logger.error(traceback.format_exc())
+    finally:
+        timer.increase_threshold_and_reset()
 
 
-def enqueue_ts_urls(m3u8_url, headers, _rq, stream_queue):
+async def enqueue_ts_urls(m3u8_url, headers, _rq, stream_queue):
     """
     Enqueue segment urls downloaded from playlist(m3u8) url to stream_queue while g_quit is false.
     The queue will be consumed and stream segments will be saved to a file.
@@ -200,101 +202,106 @@ def enqueue_ts_urls(m3u8_url, headers, _rq, stream_queue):
     while not G_QUIT:
         sleep_time = 0
         try:
-            res = _rq.get(m3u8_url, headers=headers, timeout=2)
-            if res.status_code == 200:
-                playlist = m3u8.loads(res.text)
-                root_uri = get_m3u8_root_uri(m3u8_url)
-                for seg in playlist.segments:
-                    if seg.uri in uri_set_windowed:
-                        print(f'Duplicate URI: {seg.uri}')
-                    else:
-                        uri_set_windowed.add(seg.uri)
-                        url = urljoin(root_uri, seg.uri)
-                        stream_queue.put((url, seg.duration))
-                        print(f'Put segment: url-{url}, duration-{seg.duration} => OK')
-                    sleep_time = sleep_time + seg.duration - SEGMENT_DURATION_BUFFER
-                print(f"m3u8 worker: Sleep {sleep_time} seconds.")
-                time.sleep(sleep_time)
-            else:
-                logger_config.logger.error(
-                    "Received unexpected status code when requesting m3u8: {%s, %s}", 
-                    res.status_code, res.json())
+            async with _rq.get(m3u8_url, headers=headers) as res:
+                if res.status == 200:
+                    playlist = m3u8.loads(await res.text())
+                    root_uri = get_m3u8_root_uri(m3u8_url)
+                    for seg in playlist.segments:
+                        if seg.uri in uri_set_windowed:
+                            print(f'Duplicate URI: {seg.uri}')
+                        else:
+                            uri_set_windowed.add(seg.uri)
+                            url = urljoin(root_uri, seg.uri)
+                            await stream_queue.put((url, seg.duration))
+                            print(f'Put segment: url-{url}, duration-{seg.duration} => OK')
+                        sleep_time = sleep_time + seg.duration - SEGMENT_DURATION_BUFFER
+                    print(f"m3u8 worker: Sleep {sleep_time} seconds.")
+                    await asyncio.sleep(sleep_time)
+                else:
+                    logger_config.logger.error(
+                        "Received unexpected status code when requesting m3u8: {%s}", res.status)
         except Exception as exc:
             print('Error: Failed to get m3u8.')
             print(traceback.format_exc())
             raise NotOnAirException() from exc
 
 
-def do_download(m3u8_url: str, filename: str, headers, executor: cf.ThreadPoolExecutor):
+async def do_download(m3u8_url: str, filename: str, headers, youtube_uploader: VideoFileUploader):
     """
     Start 2 tasks.
     1. Enqueue segment(ts) urls from playlist url.
     2. Dequeue segment(ts) urls and download it.
     """
-    session = rq.Session()
-    retries = Retry(total=5,
-                    backoff_factor=0.1,
-                    status_forcelist=[500, 502, 503, 504])
-    session.mount('https://', HTTPAdapter(max_retries=retries))
-    stream_queue = queue.Queue()
+    async with aiohttp.ClientSession() as session:
+        stream_queue = asyncio.Queue()
 
-    futures = [executor.submit(enqueue_ts_urls, m3u8_url, headers, session, stream_queue),
-               executor.submit(download_segments, filename, stream_queue, session, headers)]
+        try:
+            await asyncio.gather(
+                asyncio.create_task(enqueue_ts_urls(m3u8_url, headers, session, stream_queue)),
+                asyncio.create_task(download_segments(filename, stream_queue, session, headers, youtube_uploader)))
+        except KeyboardInterrupt as exc:
+            global G_QUIT
+            G_QUIT = True
+            raise exc
+        except Exception as exc:
+            logger_config.logger.error(repr(exc))
+            raise exc
 
-    # Keep looping to handle KeyboardInterrupt signal (SIGINT)
-    # http://www.luke.maurits.id.au/blog/post/threads-and-signals-in-python.html
-    # https://stackoverflow.com/questions/29177490/how-do-you-kill-futures-once-they-have-started
-    try:
-        while not all(future.done() for future in futures):
-            time.sleep(1)
-    except KeyboardInterrupt as exe:
-        global G_QUIT
-        G_QUIT = True
-        raise exe
+def get_next_file_and_close_current(file, youtube_uploader: VideoFileUploader):
+    """
+    Close the current open file and open a next file named after the first file with postfix "-다음"
+    """
+    old_abs_path = os.path.abspath(file.name)
+    old_name = os.path.basename(file.name)
+    ext = old_name[old_name.rfind('.')+1:]
+    old_name_without_ext = old_name[:old_name.rfind('.')]
+    new_file_name = f'{VIDEO_DIR}/{old_name_without_ext}-다음.{ext}'
+    file.close()
+    return (old_abs_path, open(new_file_name, 'ab'))
 
-    for future in cf.as_completed(futures):
-        exe = future.exception()
-        if exe:
-            logger_config.logger.error(repr(exe))
-            raise exe
-
-
-def download_segments(filename: str, stream_queue: queue.Queue, _rq, headers):
+async def download_segments(
+        filename: str, stream_queue: asyncio.Queue, _rq, headers, youtube_uploader: VideoFileUploader):
     """
     Consume the streaming segments queue and download it while G_QUIT is false.
     """
-    with open(filename, 'ab') as file:
-        while not G_QUIT:
-            try:
-                (url, duration) = stream_queue.get(timeout=30)
-                response = _rq.get(url, stream=True, headers=headers, timeout=2)
-                if response.status_code == 200:
+    file = open(filename, 'ab')
+    loop = asyncio.get_event_loop()
+    while not G_QUIT:
+        try:
+            if os.path.getsize(os.path.realpath(file.name)) > MAX_SINGLE_FILE_SIZE:
+                (old_abs_path, file) = get_next_file_and_close_current(file, youtube_uploader)
+                # Upload asynchronously
+                asyncio.run_coroutine_threadsafe(youtube_uploader.upload_and_delete_file_async(old_abs_path), loop)
+            (url, duration) = await asyncio.wait_for(stream_queue.get(), timeout=1800)
+            async with _rq.get(url, headers=headers) as response:
+                if response.status == 200:
                     logger_config.stream_logger.debug('{%s} => OK', url)
-                    for chunk in response.iter_content(chunk_size=1024):
+                    async for chunk in response.content.iter_chunked(1024):
                         file.write(chunk)
                     print(f'DOWNLOAD: {url} => OK')
+                    stream_queue.task_done()
                 else:
                     logger_config.logger.error(
-                        "Received unexpected status code: {%s, %s} for segment: {%s}", 
-                        response.status_code, response.json, url)
-                time.sleep(duration - SEGMENT_DURATION_BUFFER)
-            except Exception as exe:
-                logger_config.logger.error('ERROR: Downloading segments from m3u8 playlist')
-                logger_config.logger.error(traceback.format_exc())
-
-                if not stream_queue.empty():
-                    logger_config.logger.info(
-                        'Try recover from error since the streaming queue is not empty.')
-                    # Flush all delayed segments.
-                    while not stream_queue.empty():
-                        uri = stream_queue.get(block=False)
-                        logger_config.logger.info('Flushing delayed uris: {%s}', uri)
-                else:
-                    logger_config.logger.info(
-                        'Stop downloading segments since the streaming has been stopped.')
-                    raise NotOnAirException() from exe
-            finally:
-                stream_queue.task_done()
+                        "Received unexpected status code: {%s} for segment: {%s}", 
+                        response.status, url)
+                    stream_queue.task_done()
+            # await asyncio.sleep(duration - SEGMENT_DURATION_BUFFER)
+        except Exception as exc:
+            logger_config.logger.error('ERROR: Downloading segments from m3u8 playlist')
+            logger_config.logger.error(traceback.format_exc())
+            file.close()
+            if not stream_queue.empty():
+                logger_config.logger.info(
+                    'Try recover from error since the streaming queue is not empty.')
+                # Flush all delayed segments.
+                while not stream_queue.empty():
+                    uri = await stream_queue.get()
+                    logger_config.logger.info('Flushing delayed uris: {%s}', uri)
+            else:
+                logger_config.logger.info(
+                    'Stop downloading segments since the streaming has been stopped.')
+                raise NotOnAirException() from exc
+    file.close()
 
 
 def get_m3u8_root_uri(m3u8_url):

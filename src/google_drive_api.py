@@ -1,3 +1,4 @@
+import asyncio
 from googleapiclient import errors
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -6,17 +7,17 @@ from constants import VIDEO_DIR
 from google_cred import get_cred
 
 
-def save(filename, filepath):
-    cred = get_cred()
+async def save(filename, filepath):
+    cred = await get_cred()
     service = build('drive', 'v3', credentials=cred, cache_discovery=False)
-    return insert_file(service, filename, '1bE-A_oYEyRjsBJZrKGrgeNLNrzktwR87', 'video/mpeg', filepath)
+    return await asyncio.to_thread(insert_file, service, filename, '1bE-A_oYEyRjsBJZrKGrgeNLNrzktwR87', 'video/mpeg', filepath)
 
 
 def get_file_link(fileId):
     return f"https://drive.google.com/file/d/{fileId}/view?usp=sharing"
 
 
-def insert_file(service, title, parent_id, mime_type, filename):
+async def insert_file(service, title, parent_id, mime_type, filename):
     media = MediaFileUpload(filename, mimetype=mime_type, resumable=True)
     media.stream()
     file_metadata = {
@@ -46,5 +47,5 @@ def insert_file(service, title, parent_id, mime_type, filename):
         return None
 
 
-if __name__ == '__main__':
-    save('test.mpeg', f'{VIDEO_DIR}/1631065306.mpeg')
+# if __name__ == '__main__':
+#     save('test.mpeg', f'{VIDEO_DIR}/1631065306.mpeg') TODO: convert it to run async method

@@ -32,11 +32,13 @@ config.read(config_file)
 
 TARGET_BJ = config['Recording']['target_bj_home_uri']
 EMAIL_RECIPIENTS = config['Notification']['recipients'].split(',')
-SAVE_ON_DRIVE_AND_NOTIFY = config.getboolean('Notification', 'notify')
 CLIENT_CRED_FILE = (SECRETS_DIR / config['Credential']['file']).resolve()
 CHROME = config['Selenium']['remote']
 WEBDRIVER_TYPE = config['Selenium']['type']
 LOCATION = config['Selenium']['location']
+SHOULD_UPLOAD = config.getboolean('Video', 'upload')
+MAX_SINGLE_FILE_SIZE = config.getint('Video', 'max_single_file_size')
+SHOULD_NOTIFY = config.getboolean('Notification', 'notify')
 
 if __name__ == '__main__':
     print(VIDEO_DIR)
@@ -45,9 +47,10 @@ if __name__ == '__main__':
     print(TARGET_BJ)
     print(CONFIG_FILE_PATH)
     print(EMAIL_RECIPIENTS)
-    print(SAVE_ON_DRIVE_AND_NOTIFY)
+    print(SHOULD_UPLOAD)
     print(config_file)
     print(CLIENT_CRED_FILE)
     print(CHROME)
     print(WEBDRIVER_TYPE)
     print(LOCATION)
+    print(SHOULD_NOTIFY)
