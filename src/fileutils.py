@@ -23,10 +23,6 @@ def get_old_files(dir_path: str, hours_after_modification: int):
             int((time.time() - os.path.getmtime(f)) / (60 * 60)) >= hours_after_modification]
 
 
-def get_new_videos(existing_videos):
-    return [f for f in get_files_in_dir(VIDEO_DIR) if f not in existing_videos]
-
-
 def get_legal_filename_string(filename):
     invalid = '<>:"/\|?* '
     for char in invalid:

@@ -6,35 +6,40 @@
   ____) | | | | | | | |  __/  __/____) | (__| | | (_| | |_) |  __/ |   
  |_____/|_| |_|_|_| |_|\___|\___|_____/ \___|_|  \__,_| .__/ \___|_|   
                                                       | |              
-                                                      |_|              v1.0 by Danwoo Park
+                                                      |_|              v2.0 by Danwoo Park
 ```
-
-## Warning
-https://developers.google.com/identity/protocols/oauth2/resources/oob-migration
-Google has stopped providing out-of-band OAuth2.0 flow.
-You have to add a public endpoint to get a redirection with code, which can be used to exchange with actual access token.
-(Or you can use other client's that supports OAuth2 authorization flow such as Postman and copy & paste access token from it.)
-
 ## Summary
 ShineeScraper is an Afreeca TV live stream downloader.
 Download afreeca live stream and upload it to Google drive, then send you an email so that you can watch it later anytime you want.
+
+## Requirements
+> Python version at least 3.10
+> Google Cloud Console account and service (The project that the account belongs to must be set to use Youtube Data API v3 and Gmail API)
+
+## Login
+The following script runs a flask server on http://localhost:5000.
+> src/login.py
+Once you access the link, you will be redirected to Google OAuth2 login page.
+(Before doing this, you should locate a client credentials json file unser the `secrets` directory. The client must be a `web application` type on the Google Cloud Console page.)
+After login finishes, token.json file will be saved under the `token` directory.
 
 # How to execute this program?
 1. You should configure which BJ this program should monitor. When the BJ starts streaming, the recording will be started automatically. Only 1 BJ can be monitored at a time.
 2. Google API secret json file is needed and properly located.
 3. Youtube and gmail token should be set.
 4. Necessary directories should be made in advance.
-  - token/youtube
+  - token
   - secrets
   - logs
   - videos
 
-## Build and push
+## Docker
+### Build and push
 > docker login
 > docker build -t mojo1821/shinee-scraper:latest .
 > docker push mojo1821/shinee-scraper:latest
 
-## Now, this app is dockerized🎉
+### Now, this app is dockerized🎉
 1. To execute, 
    * with production config,
     > docker compose --env-file .env.prod up -d
@@ -43,14 +48,11 @@ Download afreeca live stream and upload it to Google drive, then send you an ema
 2. To send SIGINT (stop program and send the recording to recipients)
     > docker kill --signal=SIGINT {container id}
 
-## Useful docker compose commands
+### Useful docker compose commands
 1. To rebuild after changing source codes,
     > docker compose up -d --build
 
 ## TODOs
-0. Make this an web application.
-   - Google drive, youtube, gmail notification must be retrieved by user interaction.
-   - Should be able to retry upload manually after manually refreshing token.
 1. manage replica set to enhance availability
 2. enhance observability (monitoring)
 
@@ -106,3 +108,7 @@ Run docker compose and enjoy.
 `google-chrome --version`
 
 > https://scottspence.com/posts/use-chrome-in-ubuntu-wsl
+
+## How to install python 3.10
+### On AWS linux
+> https://devopsmania.com/how-to-install-python3-on-amazon-linux-2/

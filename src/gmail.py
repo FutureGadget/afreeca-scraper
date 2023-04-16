@@ -1,3 +1,4 @@
+import asyncio
 from google_cred import get_cred
 from googleapiclient.discovery import build
 from googleapiclient import errors
@@ -26,26 +27,26 @@ def create_message(to, subject, message_text):
     return {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')}
 
 
-def send_email_to(message):
-    cred = get_cred()
+async def send_email_to(message):
+    cred = await get_cred()
     service = build('gmail', 'v1', credentials=cred, cache_discovery=False)
 
     try:
-        message = (service.users().messages().send(userId='me', body=message).execute())
+        message = await asyncio.to_thread(service.users().messages().send(userId='me', body=message).execute)
         print(f"Message Id: {message['id']}")
         return message
     except errors.HttpError as error:
         print(f'An error occured: {error}')
 
 
-def broadcast_to_enrolled_users(subject, message_text):
-    cred = get_cred()
+async def broadcast_to_enrolled_users(subject, message_text):
+    cred = await get_cred()
     service = build('gmail', 'v1', credentials=cred, cache_discovery=False)
 
     for recipients in EMAIL_RECIPIENTS:
         message = create_message(to=recipients, subject=subject, message_text=message_text)
         try:
-            message = (service.users().messages().send(userId='me', body=message).execute())
+            message = await asyncio.to_thread(service.users().messages().send(userId='me', body=message).execute)
             print(f"Message sent to {recipients}, messageId: {message['id']}")
         except errors.HttpError as error:
             print(f'An error occured: {error} sending email to {recipients}')
