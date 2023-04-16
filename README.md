@@ -56,7 +56,7 @@ After login finishes, token.json file will be saved under the `token` directory.
 1. manage replica set to enhance availability
 2. enhance observability (monitoring)
 
-## Run Local (to get authenticated in console)
+## Run Local
 ### Using standalone-chrome with chromedriver docker image and local python
 Make sure that the `type` is set to `REMOTE` under the `Selenium` config in the `configs/app_config-{env}.ini` file.
 1. Run standalone chrome  
