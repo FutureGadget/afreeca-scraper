@@ -12,7 +12,7 @@ from google_cred import get_cred
 from logger_config import logger
 
 httplib2.RETRIES = 1
-MAX_RETRIES=10
+MAX_RETRIES=3
 
 RETRIABLE_EXCEPTIONS = (httplib2.HttpLib2Error, IOError, httplib.NotConnected,
   httplib.IncompleteRead, httplib.ImproperConnectionState,
@@ -86,7 +86,11 @@ async def save(title, filepath):
         media_body=media
     )
 
-    return await resumable_upload(insert_request)
+    try:
+        return await resumable_upload(insert_request)
+    except Exception as exc:
+        logger.error("Retrying upload from the first: %s", exc)
+        return await resumable_upload(insert_request)
 
 
 def get_file_link(file_id):
