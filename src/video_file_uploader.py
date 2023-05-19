@@ -2,7 +2,6 @@
 A module that contains apis to upload video file on an external system such as Youtube.
 """
 import os
-import asyncio
 import youtube_api
 from constants import SHOULD_NOTIFY, SHOULD_UPLOAD
 from gmail import broadcast_to_enrolled_users
@@ -37,6 +36,8 @@ class VideoFileUploader:
             if link is not None:
                 if SHOULD_NOTIFY:
                     await broadcast_to_enrolled_users(f'[Live Recording]{filename}', f'링크: {link}')
+            else:
+                await broadcast_to_enrolled_users(f'[Live Recording] 업로드 실패! 확인 요망')
                 os.remove(abs_path)
 
         else:

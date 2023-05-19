@@ -10,6 +10,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google_cred import get_cred
 from logger_config import logger
+from errors import VideoUploadFailure
 
 httplib2.RETRIES = 1
 MAX_RETRIES=3
@@ -45,7 +46,8 @@ async def resumable_upload(insert_request):
             logger.error('Error while uploading: %s', error)
             retry += 1
             if retry > MAX_RETRIES:
-                raise Exception("Youtube uploader retry failed: ", "Exceeded max retry count")
+                logger.error("Youtube uploader retry failed: Exceeded max retry count")
+                raise VideoUploadFailure()
     if response is not None:
         if 'id' in response:
             logger.info('upload done: %s', response)
@@ -88,6 +90,9 @@ async def save(title, filepath):
 
     try:
         return await resumable_upload(insert_request)
+    except VideoUploadFailure as exc:
+        logger.error("Stop uploading: %s", exc)
+        return None
     except Exception as exc:
         logger.error("Retrying upload from the first: %s", exc)
         return await resumable_upload(insert_request)

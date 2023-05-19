@@ -54,4 +54,3 @@ async def broadcast_to_enrolled_users(subject, message_text):
 
 if __name__ == '__main__':
     broadcast_to_enrolled_users(subject='샤강도착', message_text="테스트")
-    # print(sendEmailTo(create_message(to="danwoopark@gmail.com",subject="샤이니 강의 도착!!",message_text="링크:https://drive.google.com/file/d/1WghtnOxzMNneukwwiWVJAARQI3ycTcE4/view?usp=sharing")))
