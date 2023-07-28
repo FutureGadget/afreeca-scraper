@@ -60,14 +60,10 @@ async def scrape(bj_home_uri, shinee_tracker, youtube_uploader):
         print('===============================================')
         await do_scrape(driver, bj_home_uri, shinee_tracker, youtube_uploader)
     except NotOnAirException:
-        print('!-------------------------------NOT ON AIR------------------------------!')
-        print(" Start from the first since the broadcasting does not seem to be on air.")
-        print('!-----------------------------------------------------------------------!')
+        pass
     except Exception as exe:
-        logger_config.logger.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         logger_config.logger.error('Exception while scraping...')
         logger_config.logger.error(traceback.format_exc())
-        logger_config.logger.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         raise exe
     finally:
         driver.quit()

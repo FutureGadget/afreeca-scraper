@@ -1,6 +1,5 @@
 import asyncio
 import sys
-import time
 
 import fileutils
 import video_file_cleaner

@@ -6,7 +6,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from errors import NotOnAirException
-import logger_config
 
 PLAYER_BOX_XPATH = '//*[@id="bs-navi"]/div/article[2]/div/a'
 WAIT_SEC = 3
@@ -31,6 +30,4 @@ def get_player(driver, bj_home_url):
 
         return driver
     except Exception as exc:
-        logger_config.logger.error(
-            'exception while getting afreeca player url for %s', bj_home_url, exc_info = 1)
         raise NotOnAirException() from exc
