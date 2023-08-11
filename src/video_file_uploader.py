@@ -41,7 +41,7 @@ class VideoFileUploader:
                         f"[Live Recording]{filename}", f"링크: {link}"
                     )
             else:
-                await broadcast_to_enrolled_users(f"[Live Recording] 업로드 실패! 확인 요망")
+                await broadcast_to_enrolled_users("[Error]", f"[Live Recording] 업로드 실패! 확인 요망")
             os.remove(abs_path)
 
         else:
