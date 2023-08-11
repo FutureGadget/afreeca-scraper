@@ -11,13 +11,14 @@ from scraper import scrape
 
 import logger_config
 
+
 async def main():
     """
     This is the main entry point for the program
     """
     show_banner()
-    print(f'Target BJ URI: {TARGET_BJ}')
-    print(f'Email recipients: {EMAIL_RECIPIENTS}')
+    print(f"Target BJ URI: {TARGET_BJ}")
+    print(f"Email recipients: {EMAIL_RECIPIENTS}")
 
     shinee_tracker = ShineeTracker(start_tomorrow=True)
     youtube_uploader = await get_video_file_uploader()
@@ -28,9 +29,9 @@ async def main():
         try:
             await scrape(TARGET_BJ, shinee_tracker, youtube_uploader)
         except KeyboardInterrupt:
-            print('=======SHUTDOWN REQUESTED======')
+            print("=======SHUTDOWN REQUESTED======")
             print("Shutdown requested...existing.")
-            print('===============================')
+            print("===============================")
             break
         except Exception:
             logger_config.logger.error("Ignoring Unknown Error")
@@ -43,5 +44,6 @@ async def main():
 
     sys.exit(0)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(main())

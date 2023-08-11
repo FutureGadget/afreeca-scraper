@@ -13,14 +13,22 @@ from logger_config import logger
 from errors import VideoUploadFailure
 
 httplib2.RETRIES = 1
-MAX_RETRIES=3
+MAX_RETRIES = 3
 
-RETRIABLE_EXCEPTIONS = (httplib2.HttpLib2Error, IOError, httplib.NotConnected,
-  httplib.IncompleteRead, httplib.ImproperConnectionState,
-  httplib.CannotSendRequest, httplib.CannotSendHeader,
-  httplib.ResponseNotReady, httplib.BadStatusLine)
+RETRIABLE_EXCEPTIONS = (
+    httplib2.HttpLib2Error,
+    IOError,
+    httplib.NotConnected,
+    httplib.IncompleteRead,
+    httplib.ImproperConnectionState,
+    httplib.CannotSendRequest,
+    httplib.CannotSendHeader,
+    httplib.ResponseNotReady,
+    httplib.BadStatusLine,
+)
 
 RETRIABLE_STATUS_CODES = [500, 502, 503, 504]
+
 
 async def resumable_upload(insert_request):
     """
@@ -36,27 +44,30 @@ async def resumable_upload(insert_request):
                 logger.info("Uploaded %d%%", int(status.progress() * 100))
         except errors.HttpError as exc:
             if exc.resp.status in RETRIABLE_STATUS_CODES:
-                error = "A retriable HTTP error %d occurred while uploading:\n%s" % (exc.resp.status,exc.content)
+                error = "A retriable HTTP error %d occurred while uploading:\n%s" % (
+                    exc.resp.status,
+                    exc.content,
+                )
             else:
-                logger.error('A nonretryable error occured while uploading: %s', exc)
+                logger.error("A nonretryable error occured while uploading: %s", exc)
                 return None
         except RETRIABLE_EXCEPTIONS as exc:
             error = "A retriable error occurred: %s" % exc
         if error is not None:
-            logger.error('Error while uploading: %s', error)
+            logger.error("Error while uploading: %s", error)
             retry += 1
             if retry > MAX_RETRIES:
                 logger.error("Youtube uploader retry failed: Exceeded max retry count")
                 raise VideoUploadFailure()
     if response is not None:
-        if 'id' in response:
-            logger.info('upload done: %s', response)
-            logger.info("File ID: %s", response.get('id'))
-            file_link = get_file_link(response.get('id'))
-            logger.info('file link: %s', file_link)
+        if "id" in response:
+            logger.info("upload done: %s", response)
+            logger.info("File ID: %s", response.get("id"))
+            file_link = get_file_link(response.get("id"))
+            logger.info("file link: %s", file_link)
             return file_link
     else:
-        logger.error('File upload eventually failed.')
+        logger.error("File upload eventually failed.")
         return None
 
 
@@ -67,25 +78,21 @@ async def save(title, filepath):
     cred = await get_cred()
     if cred is None:
         return None
-    youtube = build('youtube', 'v3', credentials=cred, cache_discovery=False)
-    media = MediaFileUpload(filepath, mimetype='video/mpeg', resumable=True, chunksize=5*1024*1024)
+    youtube = build("youtube", "v3", credentials=cred, cache_discovery=False)
+    media = MediaFileUpload(
+        filepath, mimetype="video/mpeg", resumable=True, chunksize=5 * 1024 * 1024
+    )
     media.stream()
 
     body = dict(
         snippet=dict(
-            title=title,
-            description='스타강좌',
-            tags=['Starcraft', 'Terran', 'Lecture']
+            title=title, description="스타강좌", tags=["Starcraft", "Terran", "Lecture"]
         ),
-        status=dict(
-            privacyStatus="private"
-        )
+        status=dict(privacyStatus="private"),
     )
 
     insert_request = youtube.videos().insert(
-        part=",".join(body.keys()),
-        body=body,
-        media_body=media
+        part=",".join(body.keys()), body=body, media_body=media
     )
 
     try:

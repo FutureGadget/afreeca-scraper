@@ -54,7 +54,7 @@ class Timer:
         self._start_time = time.perf_counter()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     t = Timer.threshold(4)
     t.increase_threshold()
     t.start()

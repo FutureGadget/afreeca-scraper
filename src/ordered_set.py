@@ -8,12 +8,16 @@ class OrderedSet:
 
     def __init__(self, window: int = 100):
         self.limit = window
-        self.dict = OrderedDict()  # Ordered dict preserves the insertion order of the items.
+        self.dict = (
+            OrderedDict()
+        )  # Ordered dict preserves the insertion order of the items.
 
     def add(self, data: str):
         if len(self.dict.keys()) >= self.limit:
             self.dict.popitem(last=False)
-        self.dict[data] = None  # put `None` in the ordered dictionary since we will only use the key set.
+        self.dict[
+            data
+        ] = None  # put `None` in the ordered dictionary since we will only use the key set.
 
     def __contains__(self, data):
         if data in self.dict:
@@ -25,17 +29,17 @@ class OrderedSet:
         return len(self.dict.keys())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     set = OrderedSet()
     for i in range(1000, 0, -1):
         set.add(str(i))
 
-    print(f'size: {len(set)}')
+    print(f"size: {len(set)}")
 
     for i in range(100, 0, -1):
         if str(i) in set:
-            print(f'set contains: {i}')
+            print(f"set contains: {i}")
         else:
-            print(f'set does not contain: {i}')
+            print(f"set does not contain: {i}")
 
-    print(f'size: {len(set)}')
+    print(f"size: {len(set)}")
