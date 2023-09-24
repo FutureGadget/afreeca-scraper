@@ -16,3 +16,6 @@ profiles_settings.xml
 vcs.xml
 .idea/
 shinee-scraper/
+.python-version
+.DS_STORE
+scraper/

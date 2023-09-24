@@ -28,7 +28,7 @@ from timer import Timer
 from bj_tracker import ShineeTracker
 from video_file_uploader import VideoFileUploader
 
-HEADLESS = True
+HEADLESS = False
 LIVE_STREAMING_LAG_THRESHOLD_SEC = 10
 RETRY_COUNT_THRESHOLD = 5
 # Should sleep with buffer to keep pace with streaming server (where network request latencey exists)
