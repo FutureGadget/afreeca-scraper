@@ -22,7 +22,7 @@ def get_player(driver, bj_home_url):
         wait = WebDriverWait(driver, WAIT_SEC)
         current_window = driver.current_window_handle
 
-        get_onair_button_infinitely(wait).click()
+        get_onair_button_infinitely(driver, wait).click()
 
         # Wait until the broadcast window is opened and switch to the new window.
         wait.until(EC.new_window_is_opened)
@@ -33,9 +33,11 @@ def get_player(driver, bj_home_url):
     except Exception as exc:
         raise NotOnAirException() from exc
 
-def get_onair_button_infinitely(wait):
+def get_onair_button_infinitely(driver, wait):
     while True:
         try:
             return wait.until(EC.element_to_be_clickable((By.XPATH, PLAYER_BOX_XPATH)))
         except TimeoutException as e:
             continue
+        finally:
+            driver.refresh()
