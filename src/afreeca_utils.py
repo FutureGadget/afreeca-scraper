@@ -1,7 +1,7 @@
 """
 This module defines utils for afreeca player
 """
-
+from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -33,11 +33,10 @@ def get_player(driver, bj_home_url):
     except Exception as exc:
         raise NotOnAirException() from exc
 
-def get_onair_button_infinitely(driver, wait):
+def get_onair_button_infinitely(driver: WebDriver, wait: WebDriverWait):
     while True:
         try:
             return wait.until(EC.element_to_be_clickable((By.XPATH, PLAYER_BOX_XPATH)))
         except TimeoutException as e:
-            continue
-        finally:
             driver.refresh()
+            continue
