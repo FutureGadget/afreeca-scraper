@@ -9,7 +9,7 @@ from selenium.common.exceptions import TimeoutException
 from errors import NotOnAirException
 
 PLAYER_BOX_XPATH = '//*[@id="bs-navi"]/div/article[2]/div/a'
-WAIT_SEC = 10
+WAIT_SEC = 30
 
 
 def get_player(driver, bj_home_url):
